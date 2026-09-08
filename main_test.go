@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -189,7 +190,7 @@ func TestPickPolicies(t *testing.T) {
 	if strings.Contains(string(b), "/base.yml") || !strings.Contains(string(b), "  - "+srv.URL+"/claude.yml\n") {
 		t.Errorf("include list after pick:\n%s", b)
 	}
-	if _, err := os.Stat(filepath.Join(dir, ".stonewall", "policies", "lock.yml")); err != nil {
+	if _, err := os.Stat(filepath.Join(dir, ".stonewall", "lock.yml")); err != nil {
 		t.Errorf("new include was not reviewed and cached: %v", err)
 	}
 
@@ -205,6 +206,65 @@ func TestPickPolicies(t *testing.T) {
 	}
 	if after, _ := os.ReadFile(path); string(after) != before {
 		t.Errorf("cancel changed the file:\n%s", after)
+	}
+}
+
+func TestCreateCommand(t *testing.T) {
+	dir := t.TempDir()
+	policyFile := filepath.Join(dir, ".stonewall.yml")
+	if err := os.WriteFile(policyFile, []byte("bin:\n  allowed: [cat]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(wd)
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { stdin = os.Stdin }()
+	run := func(input string, args ...string) error {
+		stdin = strings.NewReader(input)
+		cmd := newRootCmd()
+		cmd.SetOut(&bytes.Buffer{})
+		cmd.SetErr(&bytes.Buffer{})
+		cmd.SetArgs(append([]string{"--plain", "policy", "create"}, args...))
+		return cmd.Execute()
+	}
+
+	// name from the prompt, default dir, included on "y"
+	if err := run("My Policy\ny\n"); err != nil {
+		t.Fatal(err)
+	}
+	created := filepath.Join(dir, ".stonewall", "policies", "my-policy.yml")
+	if c, err := policy.Load(created); err != nil || c.Meta == nil || c.Meta.Name != "My Policy" {
+		t.Fatalf("created policy: %+v, %v", c.Meta, err)
+	}
+	p, err := policy.Load(policyFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{".stonewall/policies/my-policy.yml"}; !reflect.DeepEqual(p.Include, want) {
+		t.Errorf("include list %v, want %v", p.Include, want)
+	}
+
+	// --name and --dir, declined
+	if err := run("n\n", "-n", "Other", "-d", "custom"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "custom", "other.yml")); err != nil {
+		t.Error(err)
+	}
+	if p, _ = policy.Load(policyFile); len(p.Include) != 1 {
+		t.Errorf("declined include was added: %v", p.Include)
+	}
+
+	if err := run("\n"); err == nil {
+		t.Error("empty name accepted")
+	}
+	if err := run("n\n", "-n", "My Policy"); err == nil {
+		t.Error("existing file overwritten")
 	}
 }
 

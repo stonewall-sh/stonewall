@@ -25,7 +25,7 @@ func SeatbeltProfile(p *Plan) string {
 		fmt.Fprintf(&b, "(deny file-write* (subpath %s))\n", sbpl(r))
 	}
 	for _, h := range append(append([]string{}, p.HiddenDirs...), p.HiddenFiles...) {
-		fmt.Fprintf(&b, "(deny file-read* file-write* (subpath %s))\n", sbpl(h))
+		fmt.Fprintf(&b, "(deny file-read* file-write* process-exec* (subpath %s))\n", sbpl(h)) // file-read* alone still lets exec through
 	}
 	for _, path := range sortedValues(p.Bins) {
 		if strings.HasPrefix(path, p.Home+"/") { // binaries under $HOME, otherwise denied above

@@ -60,7 +60,9 @@ func TestBuild(t *testing.T) {
 	}
 	eq("ReadonlyFiles", p.ReadonlyFiles, []string{outsideYml})
 	eq("HiddenDirs", p.HiddenDirs, []string{real(filepath.Join(proj, "secrets"))})
-	eq("HiddenFiles", p.HiddenFiles, []string{real(filepath.Join(proj, ".env"))})
+	self, _ := os.Executable()
+	self, _ = realpath(self)
+	eq("HiddenFiles", p.HiddenFiles, []string{real(filepath.Join(proj, ".env")), self})
 	eq("ExposeWrite", p.ExposeWrite, []string{real(filepath.Join(home, "exposed"))})
 	eq("ExposeRead", p.ExposeRead, []string{real(filepath.Join(home, "exposed-ro"))})
 	// Verify escaping symlinks are skipped

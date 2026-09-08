@@ -34,7 +34,7 @@
     "include": {
       "type": "array",
       "uniqueItems": true,
-      "description": "Policies applied before this file, in order. A remote policy is reviewed once, pinned by content hash in .stonewall/policies/lock.yml, cached, and not fetched again until `stonewall policy update`. A remote policy may not have includes of its own.",
+      "description": "Policies applied before this file, in order. A remote policy is reviewed once, pinned by content hash in .stonewall/lock.yml, cached, and not fetched again until `stonewall policy update`. A remote policy may not have includes of its own.",
       "items": { "$ref": "#/$defs/include" }
     },
     "bin": {
@@ -110,7 +110,7 @@
   "$defs": {
     "include": {
       "type": "string",
-      "description": "One included policy: an https:// URL, a path under the home directory (~/...), an absolute path, or a path relative to the directory of this file that stays inside it. Other schemes, http:// included, are refused, as is a URL with a fragment: content is pinned in .stonewall/policies/lock.yml, not in the URL.",
+      "description": "One included policy: an https:// URL, a path under the home directory (~/...), an absolute path, or a path relative to the directory of this file that stays inside it. Other schemes, http:// included, are refused, as is a URL with a fragment: content is pinned in .stonewall/lock.yml, not in the URL.",
       "anyOf": [
         { "title": "Remote policy", "pattern": "^https://[^\\s#]+$" },
         { "title": "Home or absolute path", "pattern": "^~?/" },

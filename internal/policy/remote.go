@@ -131,7 +131,7 @@ type resolve struct {
 }
 
 func (l Loader) resolver(path string) (*resolve, error) {
-	r := &resolve{l: l, path: path, lockPath: filepath.Join(filepath.Dir(path), ".stonewall", "policies", "lock.yml")}
+	r := &resolve{l: l, path: path, lockPath: filepath.Join(filepath.Dir(path), ".stonewall", "lock.yml")}
 	var err error
 	if r.lock, err = readLock(r.lockPath); err != nil {
 		return nil, fmt.Errorf("%s: %w", r.lockPath, err)
@@ -152,7 +152,7 @@ func (r *resolve) ask(title, body, question string) bool {
 }
 
 func (r *resolve) cacheDir() string {
-	return filepath.Join(filepath.Dir(r.path), ".stonewall", "policies", "cache")
+	return filepath.Join(filepath.Dir(r.path), ".stonewall", "cache", "remote-policies")
 }
 
 func (r *resolve) cacheFile(u, hash string) string {
@@ -178,7 +178,7 @@ func remoteURL(inc string) (string, error) {
 		return "", fmt.Errorf("include %s: only https:// URLs are supported", inc)
 	}
 	if strings.Contains(inc, "#") {
-		return "", fmt.Errorf("include %s: pins are recorded in .stonewall/policies/lock.yml, not in the URL", inc)
+		return "", fmt.Errorf("include %s: pins are recorded in .stonewall/lock.yml, not in the URL", inc)
 	}
 	return inc, nil
 }
