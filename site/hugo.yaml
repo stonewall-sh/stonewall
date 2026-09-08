@@ -8,7 +8,7 @@ cascade:
   - title: License
     description: "Stonewall is open-source software released under the MIT license."
     target: {path: /license}
-  - title: "Official policies"   # same wording as the <h1> in layouts/policies/section.html
+  - title: "Official Policies"   # same wording as the <h1> in layouts/policies/section.html
     description: "Official, ready-made stonewall.sh policies to include in your project's .stonewall.yml."
     target: {path: /policies}
   - title: "stonewall.sh · Kernel-enforced sandbox for AI coding agents"   # <title> only, home.html doesn't render .Title
