@@ -2,7 +2,7 @@
 
 <img src="docs/logo.svg" alt="Stonewall" width="128" height="128">
 
-# Stonewall<span style="opacity:.45">.sh</span>
+# stonewall<span style="opacity:.45">.sh</span>
 
 **Kernel-enforced sandbox for AI coding agents**
 
@@ -23,8 +23,8 @@ Available on:
 
 ## 🧱 What it is
 
-Stonewall is a local sandbox for AI coding agents, drastically limiting access to tools, paths and project files, based
-on strictly enforced policies.
+Stonewall is a local, kernel-enforced **sandbox** for AI **coding agents**, drastically limiting access to tools, paths 
+and project files, based on strictly **enforced policies**, not prompts.
 
 ```
 stonewall claude
