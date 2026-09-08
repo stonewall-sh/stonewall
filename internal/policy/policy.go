@@ -77,24 +77,31 @@ func Load(path string) (Policy, error) {
 	if err != nil {
 		return Policy{}, err
 	}
-	return Parse(b)
+	p, err := Parse(b)
+	if err != nil {
+		return Policy{}, fmt.Errorf("%s: %w", path, err)
+	}
+	return p, nil
 }
 
-// Parse decodes YAML. Unknown keys are an error; an empty document is an empty policy.
-// Every expose entry must start with ~/ or /.
+// Parse checks YAML against the policy schema and decodes it. Unknown keys and malformed entries are reported
+// with their path; an empty document is an empty policy.
 func Parse(b []byte) (Policy, error) {
+	var doc any
+	if err := yaml.Unmarshal(b, &doc); err != nil {
+		return Policy{}, err
+	}
+	if doc == nil {
+		doc = map[string]any{}
+	}
+	if err := schema().Validate(doc); err != nil {
+		return Policy{}, err
+	}
 	var p Policy
 	dec := yaml.NewDecoder(bytes.NewReader(b))
 	dec.KnownFields(true)
 	if err := dec.Decode(&p); err != nil && !errors.Is(err, io.EOF) {
 		return Policy{}, err
-	}
-	for _, list := range [][]string{p.Expose.Read, p.Expose.Write, p.Expose.None} {
-		for _, e := range list {
-			if !strings.HasPrefix(e, "~/") && !strings.HasPrefix(e, "/") {
-				return Policy{}, fmt.Errorf("expose: %q must start with ~/ or /", e)
-			}
-		}
 	}
 	return p, nil
 }

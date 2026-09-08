@@ -96,6 +96,33 @@ func TestRootCmd(t *testing.T) {
 		}
 	})
 
+	t.Run("launch refuses a policy that fails the schema", func(t *testing.T) {
+		dir := t.TempDir()
+		if err := os.Mkdir(filepath.Join(dir, ".git"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, ".stonewall.yml"), []byte("bin:\n  allowed: [/bin/sh]\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		wd, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Chdir(wd)
+		if err := os.Chdir(dir); err != nil {
+			t.Fatal(err)
+		}
+
+		cmd := newRootCmd()
+		cmd.SetOut(&bytes.Buffer{})
+		cmd.SetErr(&bytes.Buffer{})
+		cmd.SetArgs([]string{"--plain", "-n", "sh", "-c", "true"})
+		err = cmd.Execute()
+		if err == nil || !strings.Contains(err.Error(), ".stonewall.yml") || !strings.Contains(err.Error(), "/bin/allowed/0") {
+			t.Errorf("launch with an invalid policy: %v", err)
+		}
+	})
+
 	t.Run("interspersed off passes --weird through", func(t *testing.T) {
 		dir := t.TempDir()
 		if err := os.Mkdir(filepath.Join(dir, ".git"), 0o755); err != nil {
@@ -178,5 +205,51 @@ func TestPickPolicies(t *testing.T) {
 	}
 	if after, _ := os.ReadFile(path); string(after) != before {
 		t.Errorf("cancel changed the file:\n%s", after)
+	}
+}
+
+func TestValidateCommand(t *testing.T) {
+	dir := t.TempDir()
+	good := filepath.Join(dir, "good.yml")
+	if err := os.WriteFile(good, []byte("bin:\n  allowed: [cat]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	bad := filepath.Join(dir, "bad.yml")
+	if err := os.WriteFile(bad, []byte("bin:\n  allowed: [/bin/cat]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "include: [other.yml]\nbin:\n  allowed: [cat]\n")
+	}))
+	defer srv.Close()
+	httpClient = srv.Client()
+	defer func() { httpClient = nil }()
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(wd)
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	run := func(ref string) error {
+		cmd := newRootCmd()
+		cmd.SetOut(&bytes.Buffer{})
+		cmd.SetErr(&bytes.Buffer{})
+		cmd.SetArgs([]string{"--plain", "policy", "validate", ref})
+		return cmd.Execute()
+	}
+	if err := run(good); err != nil {
+		t.Errorf("valid file: %v", err)
+	}
+	if err := run(bad); err == nil || !strings.Contains(err.Error(), "/bin/allowed/0") {
+		t.Errorf("invalid file: %v", err)
+	}
+	if err := run(srv.URL + "/p.yml"); err == nil || !strings.Contains(err.Error(), "nested") {
+		t.Errorf("remote policy with includes: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, ".stonewall")); err == nil {
+		t.Error("validate wrote a policy directory")
 	}
 }

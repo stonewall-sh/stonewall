@@ -162,6 +162,12 @@ Stonewall.sh is open-source software licensed under MIT. Visit {{dim "https://st
 		Args:  cobra.NoArgs,
 		RunE:  func(cmd *cobra.Command, args []string) error { return pickPolicies(policyPath) },
 	})
+	policyCmd.AddCommand(&cobra.Command{
+		Use:   "validate <url|path>",
+		Short: "Check a policy against the schema at " + policy.SchemaURL + ", without including it",
+		Args:  cobra.ExactArgs(1),
+		RunE:  func(cmd *cobra.Command, args []string) error { return validatePolicy(args[0]) },
+	})
 	cmd.AddCommand(policyCmd)
 
 	return cmd
@@ -365,6 +371,15 @@ func removePolicy(policyPath, inc string) error {
 		return exitError{1, fmt.Errorf("%s is not in the include list of %s", inc, policyPath)}
 	}
 	fmt.Fprintln(out.w, out.paint("1", "Removed policy include for "+inc+" from "+policyPath+"."))
+	return nil
+}
+
+// validatePolicy checks one policy, local or remote, against the published schema and reports every violation.
+func validatePolicy(ref string) error {
+	if err := newLoader().Validate(ref); err != nil {
+		return exitError{1, fmt.Errorf("%s: %w", ref, err)}
+	}
+	fmt.Fprintln(out.w, out.paint("1", ref+" is a valid policy."))
 	return nil
 }
 

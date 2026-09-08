@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stonewall.sh/schema.json",
+  "title": "Stonewall policy",
+  "description": "A stonewall sandbox policy: the .stonewall.yml at a project root, an official policy from https://stonewall.sh/policies, or any policy included by one. Policies are YAML documents. Included policies apply first, in order, then the rules of the file itself; a later source reclassifies a program or path an earlier one listed. Every key is optional and an empty object is an empty policy. Unknown keys are an error, as is a key left without a value.",
+  "$comment": "Sandbox model: the project directory is writable unless a project rule says otherwise, the home directory is hidden unless an expose rule lists a path, system directories stay readable, only bin.allowed programs are on PATH, and the network is shared with the host. See https://stonewall.sh for details.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "policy": {
+      "type": "object",
+      "description": "Describes the policy to people and to the policy index at https://stonewall.sh/policies/_index.yml. It has no effect on the sandbox and is dropped when policies are merged.",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable name, shown by the policy site and by `stonewall policy pick`."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://",
+          "description": "Where this policy is published: the exact string projects put in their include list. Only https:// is ever fetched."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What the policy grants and, as important, what it deliberately leaves out."
+        }
+      }
+    },
+    "include": {
+      "type": "array",
+      "uniqueItems": true,
+      "description": "Policies applied before this file, in order. A remote policy is reviewed once, pinned by content hash in .stonewall/policies/lock.yml, cached, and not fetched again until `stonewall policy update`. A remote policy may not have includes of its own.",
+      "items": { "$ref": "#/$defs/include" }
+    },
+    "bin": {
+      "type": "object",
+      "description": "What is on PATH inside the sandbox. Nothing else is executable by name. A shell or interpreter such as bash or python lets the agent run anything; no official policy grants one.",
+      "additionalProperties": false,
+      "properties": {
+        "allowed": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Programs on PATH inside the sandbox, by bare name. Each is looked up on the host PATH at launch; one that is not installed is skipped. The agent being launched must be listed.",
+          "items": { "$ref": "#/$defs/programName" }
+        },
+        "denied": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Programs removed from an earlier source's allowed list. Meaningful in a file that includes other policies. A name may not appear in both allowed and denied of the same file.",
+          "items": { "$ref": "#/$defs/programName" }
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "description": "Restrictions on paths inside the project, relative to the project root, which is the directory holding .stonewall.yml. The whole project is readable and writable unless listed here. A path that does not exist at launch is ignored.",
+      "additionalProperties": false,
+      "properties": {
+        "hidden": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Paths whose content the agent cannot read. Use for secrets: .env, key files, credential directories.",
+          "items": { "$ref": "#/$defs/projectPath" }
+        },
+        "readonly": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Paths the agent can read but not change. .git here prevents destructive git operations while history stays visible.",
+          "items": { "$ref": "#/$defs/projectPath" }
+        },
+        "writable": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Paths released from an earlier source's hidden or readonly list. Meaningful in a file that includes other policies. A path may appear in only one of hidden, readonly and writable of the same file.",
+          "items": { "$ref": "#/$defs/projectPath" }
+        }
+      }
+    },
+    "expose": {
+      "type": "object",
+      "description": "Host paths outside the project the agent may access. The home directory is empty inside the sandbox except for the paths listed here; system directories stay readable regardless.",
+      "additionalProperties": false,
+      "properties": {
+        "read": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Paths the agent can read but not change, such as ~/.gitconfig. Tools that rewrite such a file in place fail.",
+          "items": { "$ref": "#/$defs/hostPath" }
+        },
+        "write": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Paths the agent can read and change, such as ~/.claude or ~/.npm. A single file here is a mount point on Linux; tools that replace it by rename fail with EBUSY.",
+          "items": { "$ref": "#/$defs/hostPath" }
+        },
+        "none": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Paths whose exposure by an earlier source is withdrawn. Meaningful in a file that includes other policies. A path may appear in only one of read, write and none of the same file.",
+          "items": { "$ref": "#/$defs/hostPath" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "include": {
+      "type": "string",
+      "description": "One included policy: an https:// URL, a path under the home directory (~/...), an absolute path, or a path relative to the directory of this file that stays inside it. Other schemes, http:// included, are refused, as is a URL with a fragment: content is pinned in .stonewall/policies/lock.yml, not in the URL.",
+      "anyOf": [
+        { "title": "Remote policy", "pattern": "^https://[^\\s#]+$" },
+        { "title": "Home or absolute path", "pattern": "^~?/" },
+        { "title": "Path relative to this file", "$ref": "#/$defs/projectPath" }
+      ]
+    },
+    "programName": {
+      "type": "string",
+      "pattern": "^[^/\\s]+$",
+      "description": "A program by bare name, as typed on a command line: claude, node, make. No directory part, no whitespace."
+    },
+    "projectPath": {
+      "type": "string",
+      "pattern": "^([^/~]|\\.[^./]|[^./][^/]|[^/]{3,})(/([^/]|\\.[^./]|[^./][^/]|[^/]{3,}))*/?$",
+      "description": "A path relative to the project root, such as .git, .env or src/generated: no leading /, not under ~/, no .. component, because a path outside the project would be silently ignored, and no empty component. A trailing slash is fine.",
+      "$comment": "The pattern spells that out positively so validators report the offending value: a first component that is not empty, not ~ and not .., then /-separated components that are not empty and not .., then an optional trailing slash. Forbidding empty components is also what keeps a URL such as http://x out of the relative branch of an include."
+    },
+    "hostPath": {
+      "type": "string",
+      "pattern": "^~?/",
+      "description": "A path outside the project: ~/... for the home directory, or an absolute path such as /tmp."
+    }
+  },
+  "examples": [
+    {
+      "include": ["https://stonewall.sh/policies/base.yml", "https://stonewall.sh/policies/claude.yml"],
+      "project": { "readonly": [".git"], "hidden": [".env"] },
+      "bin": { "allowed": ["make"] },
+      "expose": { "read": ["~/.gitconfig"] }
+    }
+  ]
+}

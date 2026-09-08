@@ -171,10 +171,11 @@ func TestRemoteIncludeErrors(t *testing.T) {
 		_, _, err := loader(srv, a, &now).Load(path)
 		return err
 	}
-	if err := load(t, srv.url()+"#sha256=abc"); err == nil || !strings.Contains(err.Error(), "lock.yml") {
+	// A pin in the URL and a non-https scheme fail the schema when the policy file is parsed.
+	if err := load(t, srv.url()+"#sha256=abc"); err == nil || !strings.Contains(err.Error(), "/include/0") {
 		t.Errorf("pin in URL: %v", err)
 	}
-	if err := load(t, "http://example.invalid/p.yml"); err == nil || !strings.Contains(err.Error(), "only https") {
+	if err := load(t, "http://example.invalid/p.yml"); err == nil || !strings.Contains(err.Error(), "/include/0") {
 		t.Errorf("http include: %v", err)
 	}
 	if err := load(t, srv.url()); err == nil || !strings.Contains(err.Error(), "nested") {
@@ -414,11 +415,12 @@ func TestLocalIncludeOutsideProject(t *testing.T) {
 		_, _, err := (Loader{}).Load(path)
 		return err
 	}
-	// A relative entry may not leave the project, through ../ or through a symlink.
-	for _, inc := range []string{"../outside/x.yml", "policies/x.yml"} {
-		if err := load(inc); err == nil || !strings.Contains(err.Error(), "outside the project") {
-			t.Errorf("include %s: %v", inc, err)
-		}
+	// A relative entry may not leave the project: ../ fails the schema, a symlink fails the tree check.
+	if err := load("../outside/x.yml"); err == nil || !strings.Contains(err.Error(), "/include/0") {
+		t.Errorf("include ../outside/x.yml: %v", err)
+	}
+	if err := load("policies/x.yml"); err == nil || !strings.Contains(err.Error(), "outside the project") {
+		t.Errorf("include policies/x.yml: %v", err)
 	}
 	// The same file named absolutely is the user's explicit choice and loads.
 	if err := load(out); err != nil {
@@ -581,5 +583,21 @@ func TestIncludeAndRemove(t *testing.T) {
 	}
 	if removed, err := Remove(path, srv.url()); removed || err != nil {
 		t.Errorf("second remove: removed=%v err=%v", removed, err)
+	}
+}
+
+// A body that fails the schema is refused the same way: before the user is asked and before anything is written.
+func TestRemoteIncludeFailsSchemaLeavesNoTrace(t *testing.T) {
+	srv := newPolicyServer(t, "bin:\n  allowed: [/usr/bin/git]\n")
+	path, now := fixture(t, srv)
+	a := &asker{answer: true}
+	if _, _, err := loader(srv, a, now).Load(path); err == nil || !strings.Contains(err.Error(), "/bin/allowed/0") {
+		t.Fatalf("remote include failing the schema: %v", err)
+	}
+	if len(a.titles) != 0 {
+		t.Errorf("asked to trust a body that was then refused: %v", a.titles)
+	}
+	if entries, err := os.ReadDir(filepath.Join(filepath.Dir(path), ".stonewall", "policies")); err == nil && len(entries) > 0 {
+		t.Errorf("rejected body left %d entries behind", len(entries))
 	}
 }

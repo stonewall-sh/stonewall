@@ -28,10 +28,10 @@ func TestParse(t *testing.T) {
 	if _, err := Parse([]byte("bin:\n  allow: [x]\n")); err == nil {
 		t.Fatal("unknown nested key accepted")
 	}
-	if _, err := Parse([]byte("expose:\n  read: [foo/bar]\n")); err == nil || !strings.Contains(err.Error(), "must start with") {
+	if _, err := Parse([]byte("expose:\n  read: [foo/bar]\n")); err == nil || !strings.Contains(err.Error(), "/expose/read/0") {
 		t.Fatalf("bad expose entry: %v", err)
 	}
-	if _, err := Parse([]byte("expose:\n  none: [foo/bar]\n")); err == nil || !strings.Contains(err.Error(), "must start with") {
+	if _, err := Parse([]byte("expose:\n  none: [foo/bar]\n")); err == nil || !strings.Contains(err.Error(), "/expose/none/0") {
 		t.Fatalf("bad expose none entry: %v", err)
 	}
 	if p, err := Parse([]byte("# only comments\n")); err != nil || !reflect.DeepEqual(p, Policy{}) {
@@ -233,5 +233,52 @@ func TestMeta(t *testing.T) {
 	}
 	if _, err := Parse([]byte("policy:\n  author: x\n")); err == nil {
 		t.Fatal("unknown meta key accepted")
+	}
+}
+
+func TestValidate(t *testing.T) {
+	files, err := filepath.Glob("../../policies/*.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	files = append(files, "../../.stonewall.yml")
+	if len(files) < 3 {
+		t.Fatalf("expected the repository's policy files, got %v", files)
+	}
+	for _, f := range files {
+		b, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := Validate(b); err != nil {
+			t.Errorf("%s: %v", f, err)
+		}
+	}
+	for _, tc := range []struct{ name, doc, want string }{
+		{"unknown key", "bogus: 1\n", "'bogus'"},
+		{"bin entry with a directory", "bin:\n  allowed: [/usr/bin/cat]\n", "/bin/allowed/0"},
+		{"expose entry not under ~/ or /", "expose:\n  read: [foo]\n", "/expose/read/0"},
+		{"http include", "include: [http://x/p.yml]\n", "/include/0"},
+		{"relative include leaving the tree", "include: [../p.yml]\n", "/include/0"},
+		{"absolute project path", "project:\n  hidden: [/etc]\n", "/project/hidden/0"},
+		{"project path with ..", "project:\n  readonly: [a/../b]\n", "/project/readonly/0"},
+		{"project path with an empty component", "project:\n  readonly: [a//b]\n", "/project/readonly/0"},
+		{"include with a scheme hidden in a relative path", "include: [foo://p.yml]\n", "/include/0"},
+		{"section without a value", "bin:\n", "/bin"},
+		{"duplicate entry", "bin:\n  allowed: [cat, cat]\n", "/bin/allowed"},
+		{"meta without a name", "policy:\n  url: https://x/p.yml\n", "'name'"},
+		{"allowed and denied", "bin:\n  allowed: [cat]\n  denied: [cat]\n", "both bin.allowed and bin.denied"},
+	} {
+		_, err := Validate([]byte(tc.doc))
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: got %v, want an error mentioning %q", tc.name, err, tc.want)
+		}
+	}
+	ok := "include: [policies/extra.yml, ~/p.yml, /etc/p.yml, https://x/p.yml]\nproject:\n  hidden: [secrets/, ./x, a..b, .env]\nbin:\n  allowed: [g++, python3.12, \"[\"]\nexpose:\n  read: [~/.gitconfig, /tmp]\n"
+	if _, err := Validate([]byte(ok)); err != nil {
+		t.Errorf("ordinary policy rejected: %v", err)
+	}
+	if _, err := Validate(nil); err != nil {
+		t.Errorf("empty document rejected: %v", err)
 	}
 }

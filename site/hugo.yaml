@@ -16,6 +16,7 @@ module:
     - {source: ../docs/logo.svg, target: static/docs/logo.svg}
     - {source: ../docs/logo.png, target: static/docs/logo.png}
     - {source: ../install.sh,    target: static/install.sh}
+    - {source: ../internal/policy/schema.json, target: static/schema.json}
     - {source: ../CNAME,         target: static/CNAME}
     - {source: ../LICENSE,       target: content/license.md}
     - {source: content,          target: content}

@@ -446,14 +446,14 @@ func (l Loader) fetch(u string) ([]byte, error) {
 	return body, nil
 }
 
-// download fetches a policy and returns the body with its sha256, refusing anything that does not parse as
-// a policy without includes of its own. Nothing is cached before this passes.
+// download fetches a policy and returns the body with its sha256, refusing anything that fails the schema or
+// has includes of its own. Nothing is cached before this passes.
 func (l Loader) download(u string) ([]byte, string, error) {
 	body, err := l.fetch(u)
 	if err != nil {
 		return nil, "", err
 	}
-	p, err := Parse(body)
+	p, err := Validate(body)
 	if err != nil {
 		return nil, "", err
 	}
