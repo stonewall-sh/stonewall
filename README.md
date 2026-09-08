@@ -8,9 +8,14 @@
 
 [![Build](https://img.shields.io/github/actions/workflow/status/stonewall-sh/stonewall/build.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=build)](https://github.com/stonewall-sh/stonewall/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/stonewall-sh/stonewall?style=flat-square&logo=github&label=release)](https://github.com/stonewall-sh/stonewall/releases/latest)
+[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/stonewall-sh/stonewall?style=flat-square&logo=openssf&label=scorecard)](https://scorecard.dev/viewer/?uri=github.com/stonewall-sh/stonewall)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=stonewall-sh_stonewall&metric=security_rating)](https://sonarcloud.io/project/overview?id=stonewall-sh_stonewall)
 [![License: MIT](https://img.shields.io/badge/License-MIT-E4572E.svg?style=flat-square)](https://github.com/stonewall-sh/stonewall/blob/main/LICENSE)
-[![Linux](https://img.shields.io/badge/Linux-bubblewrap-FCC624?style=flat-square&logo=linux&logoColor=black)](https://github.com/stonewall-sh/stonewall/releases/latest)
-[![macOS](https://img.shields.io/badge/macOS-sandbox--exec-000000?style=flat-square&logo=apple&logoColor=white)](https://github.com/stonewall-sh/stonewall/releases/latest)
+
+Available on:
+
+[![Linux](https://img.shields.io/badge/Linux-bubblewrap-FCC624?style=flat-square&logo=linux&logoColor=black)](https://github.com/containers/bubblewrap)
+[![macOS](https://img.shields.io/badge/macOS-sandbox--exec-000000?style=flat-square&logo=apple&logoColor=white)](https://keith.github.io/xcode-man-pages/sandbox-exec.1.html)
 
 </div>
 
