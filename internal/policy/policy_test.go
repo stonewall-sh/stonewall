@@ -282,3 +282,12 @@ func TestValidate(t *testing.T) {
 		t.Errorf("empty document rejected: %v", err)
 	}
 }
+
+func FuzzParse(f *testing.F) {
+	f.Add([]byte(""))
+	f.Add([]byte("project:\n  readonly: [.git]\nbin:\n  allowed: [make]\n"))
+	f.Add([]byte("include: [a.yml]\nunknown: 1\n"))
+	f.Fuzz(func(t *testing.T, b []byte) {
+		Parse(b)
+	})
+}
