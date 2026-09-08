@@ -35,19 +35,19 @@ trusting an `AGENTS.md` file or system prompts:
 ### Tools and Binaries
 
 Stonewall restricts access to available binaries (including `$PATH`) to whitelisted tools. Stop worrying about your
-agent workaround-calling a delicate tool like `make`, `git`, `python`, `rm`, etc. It virtually doesn't exist within the
+agent workaround-calling a delicate tool like `make`, `git`, `python`, `rm`, etc. They virtually don't exist within the
 sandbox.
 
 ### Project Directories and Files
 
-Inside the project, all files are accessible by default. Stonewall can make project files / dirs read-only or even 
-completely hide them from the agent. I.e. hiding `.env` to not expose keys, or making `.git` readonly, to prevent 
+Inside the project, all files are accessible by default. Stonewall can make project files / dirs read-only or even
+completely hide them from the agent. E.g. hiding `.env` to not expose keys, or making `.git` read-only, to prevent
 destructive git operations.
 
 ### Files outside the Project
 
-By default, no files outside the project root are visible to the agent. You can expose specific directories or files tho,
-i.e. `~/.ssh`, `~/.aws`, or `~/.claude`. System directories stay readable so the allowed tools keep working.
+By default, no files outside the project root are visible to the agent. You can expose specific directories or files
+though, e.g. `~/.ssh`, `~/.aws`, or `~/.claude`. System directories stay readable so the allowed tools keep working.
 
 *Agents can never access the stonewall CLI or policy files.*
 
@@ -70,30 +70,23 @@ go install github.com/stonewall-sh/stonewall/v2@latest
 
 ## ⚡ Usage
 
+```shell
+stonewall [options] <agent> [arguments]
 ```
-cd my-project
+
+Basically, stonewall runs any coding agent (i.e. `claude`, `codex` or `qwen`) in a local sandbox. Options go before the
+agent. Everything after the agent name is passed to it untouched. Usage is as simple as:
+
+```shell
 stonewall claude
 ```
 
-The first run writes a starter `.stonewall.yml` policy, depending on the agent your run. The base policy is
-intentionally restrictive, Adapt it to your needs.
-
-| Flag                | What it does                                                                                                                |
-|---------------------|-----------------------------------------------------------------------------------------------------------------------------|
-| `-p, --policy FILE` | Use `FILE` instead of the discovered `.stonewall.yml`.                                                                      |
-| `-n, --dry-run`     | Print the effective policy and the exact `bwrap` or `sandbox-exec` command for inspection, launch nothing.                  |
-| `--plain`           | No colour or formatting in Stonewall's own messages. Automatic when stderr is not a terminal; `NO_COLOR` drops colour only. |
-| `-v, --version`     | Print the version.                                                                                                          |
-| `-h, --help`        | Show the help page. Also shown when run without arguments.                                                                  |
-
-Options go before the agent; everything after the agent name is passed to it untouched.
-
-The project root is the nearest directory upwards holding `.stonewall.yml` or `.git`, else the current directory. You
-can launch from a subdirectory, the agent starts there.
-
 ## 📜 Policy
 
-The `.stonewall.yml` policy at the project root contains all rules applied. It could look like the following example:
+Stonewall works based on a policy called `.stonewall.yml`, at your project root. It is automatically created on first
+usage and contains rules for binaries, paths and project directories being accessible from within the sandbox.
+
+See the following `.stonewall.yml` example:
 
 ```yaml
 include:
@@ -103,7 +96,7 @@ project:
   hidden:
     - .env.local        # local override for a hidden project file
   writable:
-    - .git              
+    - .git
 bin:
   allowed:
     - sh                # whitelist of allowed binaries
@@ -115,21 +108,29 @@ expose:
     - ~/.npm            # directories outside the project that should be accessible
 ```
 
-### Remote Policies
+### Include Policies
 
-You can add or remove any [official remote policies](https://stonewall.sh/policies) using the interactive picker:
+Every policy can include other policies, using an `include` property. Included policies can be local file paths or
+remote URLs. Stonewall.sh provides [official remote policies](https://stonewall.sh/policies). Keep in mind that they
+come without any warranties. The CLI will ask you to review remote policies before using them.
+
+You can use the interactive policy picker to include official policies:
 
 ```bash
 stonewall policy pick
 ```
 
-TO manae any remote policy manually, use these:
+To manage any other remote policy, you can use the following:
 
 ```bash
 stonewall policy include https://stonewall.sh/policies/claude.yml # include a remote policy
-stonewall policy rempoe https://stonewall.sh/policies/claude.yml # remove a remote policy
-stonewall policy update # updates existing policies
+stonewall policy update # updates & cache remote policies
+stonewall policy --help # show help for all policy commands
 ```
+
+Additionally use the CLI to scaffold your own include policies:
+
+`stonewall policy create`
 
 ## ⚙️ How it Works
 
@@ -183,8 +184,8 @@ make site        # website preview at http://localhost:1313
 Seatbelt profile. Both renderers are pure functions with golden tests. `test/e2e.sh` runs the same assertions on both
 platforms.
 
-`site/` is the Hugo project behind stonewall.sh. It mounts the README and `policies/` from the repository root, so
-the policy pages and `policies/_index.yml` are generated from the yml files; nothing is copied.
+`site/` is the Hugo project behind stonewall.sh. It mounts the README and `policies/` from the repository root, so the
+policy pages and `policies/_index.yml` are generated from the yml files; nothing is copied.
 
 `--dry-run` shows exactly what the backend receives. Start there when something is unexpectedly blocked or visible.
 
