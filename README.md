@@ -155,8 +155,7 @@ Linux builds the sandbox from nothing and mounts in only what is listed. macOS s
 your home directory, so locations such as `/opt/homebrew` stay writable there.
 
 `PATH` restriction is defence in depth, not isolation. Anything reachable by absolute path still runs, and an
-allowlisted interpreter such as `bash` or `python` can run anything. No shipped policy grants a shell, an interpreter or
-`git`; if your agent needs one, that is a line you add to your own policy, knowingly.
+allowlisted interpreter such as `bash` or `python` can run anything.
 
 **Known limitations**
 
