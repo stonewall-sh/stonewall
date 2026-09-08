@@ -7,3 +7,9 @@ builds:
     goos: [linux, darwin]
     goarch: [amd64, arm64]
     ldflags: -s -w -X main.version={{ .Version }}
+
+signs:
+  - cmd: cosign
+    certificate: "${artifact}.pem"
+    args: [sign-blob, --yes, --output-certificate=${certificate}, --output-signature=${signature}, ${artifact}]
+    artifacts: checksum
