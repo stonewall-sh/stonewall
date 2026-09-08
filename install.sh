@@ -26,7 +26,7 @@ main() {
 		*) echo "unsupported architecture: $(uname -m)" >&2; exit 1 ;;
 	esac
 
-	TAG=$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/$REPO/releases/latest")
+	TAG=$(curl -fsSLI --proto "=https" -o /dev/null -w '%{url_effective}' "https://github.com/$REPO/releases/latest")
 	TAG=${TAG##*/}
 	VERSION=${TAG#v}
 	TAR=stonewall_${VERSION}_${OS}_${ARCH}.tar.gz
@@ -35,8 +35,8 @@ main() {
 	TMP=$(mktemp -d)
 	trap 'rm -rf "$TMP"' EXIT
 	echo "Downloading stonewall $TAG for $OS/$ARCH"
-	curl -fsSL -o "$TMP/$TAR" "$URL/$TAR"
-	curl -fsSL -o "$TMP/checksums.txt" "$URL/stonewall_${VERSION}_checksums.txt"
+	curl -fsSL --proto "=https" -o "$TMP/$TAR" "$URL/$TAR"
+	curl -fsSL --proto "=https" -o "$TMP/checksums.txt" "$URL/stonewall_${VERSION}_checksums.txt"
 
 	want=$(grep " $TAR\$" "$TMP/checksums.txt" | cut -d' ' -f1)
 	if command -v sha256sum >/dev/null 2>&1; then got=$(sha256sum "$TMP/$TAR" | cut -d' ' -f1); else got=$(shasum -a 256 "$TMP/$TAR" | cut -d' ' -f1); fi
