@@ -18,3 +18,9 @@ signs:
       - --output-signature=${signature}
       - ${artifact}
     artifacts: checksum
+
+changelog:
+  use: github
+  abbrev: -1
+  filters:
+    exclude: ["^Merge pull request", "^Merge branch"]
