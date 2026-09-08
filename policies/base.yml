@@ -10,9 +10,9 @@ policy:
   name: Base
   url: https://stonewall.sh/policies/base.yml
   description: >
-    Provides a bare-minimum safety net for any project. It intentionally does NOT
-    include anything language-, framework- or agent-specific rules, and no tools
-    that write, delete, commit or run other programs.
+    Provides a safe, minimalistic base policy applicable to any project. It
+    intentionally does NOT include anything language-, framework- or agent-specific
+    rules, and no tools that write, delete, commit or run other programs.
 project:
   readonly:
     - .git
