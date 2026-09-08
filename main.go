@@ -168,6 +168,16 @@ Stonewall.sh is open-source software licensed under MIT. Visit {{dim "https://st
 		Args:  cobra.ExactArgs(1),
 		RunE:  func(cmd *cobra.Command, args []string) error { return validatePolicy(args[0]) },
 	})
+	var createName, createDir string
+	createCmd := &cobra.Command{
+		Use:   "create",
+		Short: "Create an empty local policy from the template",
+		Args:  cobra.NoArgs,
+		RunE:  func(cmd *cobra.Command, args []string) error { return createPolicy(policyPath, createName, createDir) },
+	}
+	createCmd.Flags().StringVarP(&createName, "name", "n", "", "policy name, the file is <name>.yml; asked for when omitted")
+	createCmd.Flags().StringVarP(&createDir, "dir", "d", "", "where to write the file (default <project>/.stonewall/policies)")
+	policyCmd.AddCommand(createCmd)
 	cmd.AddCommand(policyCmd)
 
 	return cmd
@@ -355,6 +365,50 @@ func pickPolicies(policyPath string) error {
 		return exitError{1, err}
 	}
 	return nil
+}
+
+// createPolicy writes the empty policy template as <slug of name>.yml into dir, by default the project's
+// .stonewall/policies, then offers to add it to the project policy's include list.
+func createPolicy(policyPath, name, dir string) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return exitError{1, err}
+	}
+	if policyPath == "" {
+		policyPath = filepath.Join(policy.FindRoot(cwd), policy.FileName)
+	}
+	if name == "" {
+		fmt.Fprint(out.w, out.paint("1", "Policy name:")+" ")
+		name = readLine(stdin)
+	}
+	name = strings.TrimSpace(name)
+	slug := strings.Trim(regexp.MustCompile(`[^a-z0-9._-]+`).ReplaceAllString(strings.ToLower(name), "-"), "-")
+	if slug == "" {
+		return exitError{1, errors.New("a policy needs a name with at least one letter or digit; pass --name or answer the prompt")}
+	}
+	if dir == "" {
+		dir = filepath.Join(filepath.Dir(policyPath), ".stonewall", "policies")
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return exitError{1, err}
+	}
+	path := filepath.Join(dir, slug+".yml")
+	if err := policy.WriteScaffold(path, policy.Template(name)); err != nil {
+		return exitError{1, err}
+	}
+	fmt.Fprintln(out.w, out.paint("1", "Created policy "+path+"."))
+	if !out.confirm("Include it in " + policyPath + "?") {
+		return nil
+	}
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return exitError{1, err}
+	}
+	rel, err := filepath.Rel(cwd, abs) // includeRef turns a caller-relative path into one relative to the policy file
+	if err != nil {
+		return exitError{1, err}
+	}
+	return includePolicy(policyPath, rel)
 }
 
 // removePolicy drops inc from the policy file's include list, with its lock entry and cache file.

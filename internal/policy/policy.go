@@ -106,10 +106,19 @@ func Parse(b []byte) (Policy, error) {
 	return p, nil
 }
 
-// Scaffold returns the policy proposed for a project whose first launch runs agent.
-//
 //go:embed scaffold.yml
 var scaffoldYML string
+
+func render(name string, includes []string) string {
+	var b strings.Builder
+	if err := template.Must(template.New("scaffold").Parse(scaffoldYML)).Execute(&b, struct {
+		Name     string
+		Includes []string
+	}{name, includes}); err != nil {
+		panic(err) // the template is embedded and fixed
+	}
+	return b.String()
+}
 
 // Scaffold renders scaffold.yml for a project whose first launch runs agent: the base policy, plus the
 // Claude Code policy when the agent is claude.
@@ -118,11 +127,16 @@ func Scaffold(agent string) string {
 	if strings.HasPrefix(filepath.Base(agent), "claude") {
 		includes = append(includes, "https://stonewall.sh/policies/claude.yml")
 	}
-	var b strings.Builder
-	if err := template.Must(template.New("scaffold").Parse(scaffoldYML)).Execute(&b, struct{ Includes []string }{includes}); err != nil {
-		panic(err) // the template is embedded and fixed
+	return render("", includes)
+}
+
+// Template renders scaffold.yml as an empty local policy called name, for `stonewall policy create`.
+func Template(name string) string {
+	q, err := yaml.Marshal(name) // quoted where YAML needs it, e.g. "yes" or "a: b"
+	if err != nil {
+		panic(err)
 	}
-	return b.String()
+	return render(strings.TrimSpace(string(q)), nil)
 }
 
 // WriteScaffold creates path holding content. It fails if path exists.

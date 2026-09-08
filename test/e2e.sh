@@ -21,14 +21,14 @@ echo 'ok' > "$HOME/exposed-ro/ok"
 echo 'ok' > "$TMP/ro-outside/ok"
 # The local include grants git and curl; the policy file is applied last and takes curl away again.
 printf 'bin:\n  allowed: [git, curl]\n' > "$PROJ/policies/extra.yml"
-# A remote include already reviewed and cached: resolved from .stonewall/policies without any network.
+# A remote include already reviewed and cached: resolved from .stonewall/cache/remote-policies without any network.
 sha256() { if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1; else shasum -a 256 "$1" | cut -d' ' -f1; fi; }
-mkdir -p "$PROJ/.stonewall/policies/cache"
+mkdir -p "$PROJ/.stonewall/cache/remote-policies"
 printf 'bin:\n  allowed: [cat]\n' > "$TMP/cached.yml"
 SHA=$(sha256 "$TMP/cached.yml")
-CACHED=.stonewall/policies/cache/base-$SHA.yml
+CACHED=.stonewall/cache/remote-policies/base-$SHA.yml
 cp "$TMP/cached.yml" "$PROJ/$CACHED"
-printf 'policies:\n  "https://policies.invalid/base.yml":\n    sha256: %s\n    fetched: %s\n' "$SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$PROJ/.stonewall/policies/lock.yml"
+printf 'policies:\n  "https://policies.invalid/base.yml":\n    sha256: %s\n    fetched: %s\n' "$SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$PROJ/.stonewall/lock.yml"
 printf 'include: [policies/extra.yml, "https://policies.invalid/base.yml"]\nbin:\n  allowed: [sh, grep]\n  denied: [curl]\nproject:\n  readonly: [.git]\n  hidden: [.env, secrets/]\nexpose:\n  write: [~/exposed]\n  read: [~/exposed-ro, %s]\n' "$TMP/ro-outside" > "$PROJ/.stonewall.yml"
 
 fail=0
@@ -42,7 +42,7 @@ check ".git stays readable"          0 'grep -q refs .git/HEAD'
 check ".stonewall.yml is readonly"   1 'echo x >> .stonewall.yml'
 check "included policy file is readonly" 1 'echo x >> policies/extra.yml'
 check "cached remote policy is readonly" 1 "echo x >> $CACHED"
-check "policy lock is readonly"          1 'echo x >> .stonewall/policies/lock.yml'
+check "policy lock is readonly"          1 'echo x >> .stonewall/lock.yml'
 check ".env content is hidden"       1 'grep -q TOKEN .env'
 check "secrets/ content is hidden"   1 'grep -q key secrets/key'
 check "~/.ssh is inaccessible"       1 'grep -q id "$HOME/.ssh/id"'

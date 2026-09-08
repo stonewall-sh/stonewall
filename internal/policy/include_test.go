@@ -76,8 +76,8 @@ func TestRemoteIncludeCached(t *testing.T) {
 	l := loader(srv, a, now)
 
 	dir := filepath.Dir(path)
-	cache := filepath.Join(dir, ".stonewall", "policies", "cache", "claude-"+digest([]byte(body))+".yml")
-	lockFile := filepath.Join(dir, ".stonewall", "policies", "lock.yml")
+	cache := filepath.Join(dir, ".stonewall", "cache", "remote-policies", "claude-"+digest([]byte(body))+".yml")
+	lockFile := filepath.Join(dir, ".stonewall", "lock.yml")
 
 	// 1. First load: reviewed once, cached, locked.
 	eff, files, err := l.Load(path)
@@ -220,7 +220,7 @@ func TestRemoteIncludeStale(t *testing.T) {
 	if _, _, err := l.Load(path); err != nil {
 		t.Fatal(err)
 	}
-	lockFile := filepath.Join(filepath.Dir(path), ".stonewall", "policies", "lock.yml")
+	lockFile := filepath.Join(filepath.Dir(path), ".stonewall", "lock.yml")
 
 	// 5. Older than a week and the answer is no: snoozed for a day, still loaded from the cache.
 	*now = epoch.Add(8 * 24 * time.Hour)
@@ -285,7 +285,7 @@ func TestUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 	cacheOf := func(b string) string {
-		return filepath.Join(filepath.Dir(path), ".stonewall", "policies", "cache", "claude-"+digest([]byte(b))+".yml")
+		return filepath.Join(filepath.Dir(path), ".stonewall", "cache", "remote-policies", "claude-"+digest([]byte(b))+".yml")
 	}
 	changed := "bin:\n  allowed: [git, make]\n"
 	srv.body = changed
@@ -323,7 +323,7 @@ func TestUpdate(t *testing.T) {
 	if _, err := os.Stat(cacheOf(body)); !os.IsNotExist(err) {
 		t.Error("old cache file kept")
 	}
-	lk, err := readLock(filepath.Join(filepath.Dir(path), ".stonewall", "policies", "lock.yml"))
+	lk, err := readLock(filepath.Join(filepath.Dir(path), ".stonewall", "lock.yml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -543,8 +543,8 @@ func TestIncludeAndRemove(t *testing.T) {
 	a := &asker{answer: false}
 	l := loader(srv, a, &now)
 	dir := filepath.Dir(path)
-	lockFile := filepath.Join(dir, ".stonewall", "policies", "lock.yml")
-	cache := filepath.Join(dir, ".stonewall", "policies", "cache", "claude-"+digest([]byte(body))+".yml")
+	lockFile := filepath.Join(dir, ".stonewall", "lock.yml")
+	cache := filepath.Join(dir, ".stonewall", "cache", "remote-policies", "claude-"+digest([]byte(body))+".yml")
 
 	added, res, err := l.Include(path, srv.url())
 	if !added || len(res) != 1 || res[0].Status != Untrusted || !strings.Contains(err.Error(), "not trusted") {

@@ -5,14 +5,21 @@
 #                                                                             #
 # See https://stonewall.sh or run `stonewall --help` for details              #
 ###############################################################################
+{{- if .Name }}
+
+policy:
+  name: {{ .Name }}
+{{- end }}
+{{- if .Includes }}
 
 include:
 {{- range .Includes }}
   - {{ . }}
 {{- end }}
 # Included policies apply first, then the local rules in this file. Order of application matters, last wins.
+{{- end }}
 #
-# project:               # paths inside the project, relative to this file
+# project:               # paths inside the project, relative to the project root
 #   readonly:            # the agent can read these but not change them
 #     - .git
 #   hidden:              # the agent cannot read these at all
