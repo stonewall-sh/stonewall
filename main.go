@@ -64,11 +64,14 @@ func newRootCmd() *cobra.Command {
 			"project files, based on strictly enforced policies.\n" +
 			"\n" +
 			"Launches the <agent> inside a sandbox. What the agent can see, change and run is defined in the .stonewall.yml policy.",
-		Example: "  stonewall claude                  Run Claude Code in a stonewall sandbox\n" +
-			"  stonewall claude --resume         Pass arguments to the agent\n" +
-			"  stonewall -n codex                Print sandbox config, launch nothing\n" +
-			"  stonewall -p ci.yml codex         Use another policy file\n" +
-			"  stonewall sh -c 'ls ~'            Run any command within the sandbox",
+		Example: "  stonewall claude                           Run Claude Code in a stonewall sandbox\n" +
+			"  stonewall claude --resume 7d859816         Pass arguments to the agent\n" +
+			"  stonewall -p ci.yml codex                  Use another policy file\n" +
+			"  stonewall --dry-run claude                 Print full sandbox configuration, run nothing\n" +
+			"  stonewall sh -c 'ls ~'                     Run any command within the sandbox\n" +
+			"  stonewall policy pick                      Pick remote policies to be included\n" +
+			"  stonewall policy create                    Create a new (shareable) include policy\n" +
+			"  stonewall policy validate .stonewall.yml   Validates a policy file against the official schema\n",
 		Args:          cobra.ArbitraryArgs,
 		SilenceUsage:  true,
 		SilenceErrors: true,
