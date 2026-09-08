@@ -83,6 +83,11 @@ func Build(pol policy.Policy, project, cwd string, readonlyFiles []string, agent
 			p.HiddenFiles = append(p.HiddenFiles, abs)
 		}
 	}
+	if self, err := os.Executable(); err == nil { // stonewall itself: the agent must neither read nor run it
+		if abs, ok := existing(self); ok {
+			p.HiddenFiles = append(p.HiddenFiles, abs)
+		}
+	}
 	resolve := func(e string) (string, bool) {
 		if strings.HasPrefix(e, "~/") {
 			e = filepath.Join(p.Home, e[2:])
