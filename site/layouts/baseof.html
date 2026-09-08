@@ -3,10 +3,85 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }} · {{ site.Title }}{{ end }}</title>
-<meta name="description" content="Kernel-enforced sandbox for AI coding agents">
+
+{{/* .Title and .Description come from the site-config cascade (see hugo.yaml) and, for policy
+     pages, from the policy's own yml (see content/policies/_content.gotmpl). */}}
+{{ $isPolicy := .Params.meta }}
+{{ $is404 := eq .RelPermalink "/404.html" }}
+{{ $title := .Title }}
+{{ if $is404 }}{{ $title = "Not found · stonewall.sh" }}{{ else if not .IsHome }}{{ $title = printf "%s · stonewall.sh" .Title }}{{ end }}
+{{ $description := strings.TrimSpace (.Description | default site.Params.description) }}
+{{ $image := absURL site.Params.ogImage }}
+
+<title>{{ $title }}</title>
+<meta name="description" content="{{ $description }}">
+{{ if $is404 }}<meta name="robots" content="noindex">{{ else }}<meta name="robots" content="index, follow">
+<link rel="canonical" href="{{ .Permalink }}">{{ end }}
+<meta name="theme-color" content="#1B2027">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ .Permalink }}">
+<meta property="og:site_name" content="stonewall.sh">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content="{{ $title }}">
+<meta property="og:description" content="{{ $description }}">
+<meta property="og:image" content="{{ $image }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="stonewall.sh — Kernel-enforced sandbox for AI coding agents">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ $title }}">
+<meta name="twitter:description" content="{{ $description }}">
+<meta name="twitter:image" content="{{ $image }}">
+<meta name="twitter:image:alt" content="stonewall.sh — Kernel-enforced sandbox for AI coding agents">
+
 <link rel="icon" type="image/svg+xml" href="/docs/logo.svg">
 <link rel="apple-touch-icon" href="/docs/logo.png">
+
+{{ if .IsHome }}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Stonewall",
+  "alternateName": "stonewall.sh",
+  "description": {{ $description }},
+  "url": {{ site.BaseURL }},
+  "image": {{ $image }},
+  "applicationCategory": "DeveloperApplication",
+  "applicationSubCategory": "Security",
+  "operatingSystem": "Linux, macOS",
+  "softwareHelp": {{ (printf "%spolicies/" site.BaseURL) }},
+  "license": {{ (printf "%slicense/" site.BaseURL) }},
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "codeRepository": {{ site.Params.github }},
+  "author": {
+    "@type": "Organization",
+    "name": "stonewall.sh",
+    "url": {{ site.BaseURL }}
+  }
+}
+</script>
+{{ else if $isPolicy }}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "Home", "item": {{ site.BaseURL }}},
+    {"@type": "ListItem", "position": 2, "name": "Policies", "item": {{ (printf "%spolicies/" site.BaseURL) }}},
+    {"@type": "ListItem", "position": 3, "name": {{ .Title }}, "item": {{ .Permalink }}}
+  ]
+}
+</script>
+{{ end }}
+
 <style>
 :root{--bg:#1B2027;--bg2:#232932;--fg:#C8CDD4;--mid:#A9B1BA;--dim:#8E97A1;--line:rgba(169,177,186,.18);--accent:#FF5F00;--accent2:#E4572E;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--sans:system-ui,-apple-system,"Segoe UI",sans-serif}
 *{box-sizing:border-box}
@@ -38,6 +113,9 @@ img{max-width:100%}
 .policy{padding:18px 0;border-bottom:1px solid var(--line)}.policy h2{border:0;padding:0;margin:0 0 8px}.policy p{margin:0 0 10px}.policy pre{margin:0}
 .crumb{font:13px var(--mono);color:var(--dim);margin:0 0 8px}.crumb a{color:var(--mid)}
 .source{border-left-color:var(--accent)}
+.schema h2 code,.schema h3 code{font:inherit;color:inherit;background:none;border:0;padding:0}.schema h2 small,.schema h3 small{font:13px var(--mono);color:var(--dim);margin-left:10px;font-weight:400}
+.schema h3{margin-top:28px}.schema h3 small code{font:inherit;background:var(--bg2);border:1px solid var(--line);padding:0 4px}.schema .req{color:var(--accent2);font-weight:600}
+.schema .ex{font:13px var(--mono);color:var(--dim)}.schema .ex code{color:var(--mid)}.schema .comment{color:var(--dim);font-size:14px}
 .chroma .c,.chroma .c1,.chroma .cm{color:var(--dim)}.chroma .nt,.chroma .k,.chroma .kd,.chroma .nb{color:var(--accent)}.chroma .s,.chroma .s1,.chroma .s2,.chroma .l,.chroma .m{color:var(--mid)}
 footer{border-top:1px solid var(--line);color:var(--dim);font:13px var(--mono)}footer .in{padding:18px 20px}footer a{color:var(--mid)}
 </style>
@@ -46,6 +124,7 @@ footer{border-top:1px solid var(--line);color:var(--dim);font:13px var(--mono)}f
 <header><div class="in">
   <a class="brand" href="/"><img src="/docs/logo.svg" alt=""><b><span>stonewall</span><em>.sh</em></b></a>
   <nav>
+    <a href="/schema/"{{ if eq .RelPermalink "/schema/" }} aria-current="page"{{ end }}>Schema</a>
     <a href="/policies/"{{ if eq .Section "policies" }} aria-current="page"{{ end }}>Policies</a>
     <a href="{{ site.Params.github }}">GitHub</a>
   </nav>

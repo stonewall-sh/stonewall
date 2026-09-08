@@ -1,0 +1,17 @@
+{{/* Returns .v as a slice of YAML lines, indented by .ind. Map keys follow .pref, then alphabetical.
+     Sequences are indented under their key, as the official policies write them. */}}
+{{- $v := .v }}{{ $ind := .ind }}{{ $pref := .pref }}{{ $lines := slice }}
+{{- if reflect.IsMap $v }}
+  {{- range $k := partial "schema-keys" (dict "m" $v "pref" $pref) }}
+    {{- $x := index $v $k }}
+    {{- if or (reflect.IsMap $x) (reflect.IsSlice $x) }}
+      {{- $lines = $lines | append (printf "%s%s:" $ind $k) }}
+      {{- $lines = $lines | append (partial "schema-yaml" (dict "v" $x "ind" (printf "%s  " $ind) "pref" $pref)) }}
+    {{- else }}
+      {{- $lines = $lines | append (printf "%s%s: %v" $ind $k $x) }}
+    {{- end }}
+  {{- end }}
+{{- else if reflect.IsSlice $v }}
+  {{- range $v }}{{ $lines = $lines | append (printf "%s- %v" $ind .) }}{{ end }}
+{{- end }}
+{{- return $lines }}
