@@ -216,11 +216,12 @@ func TestScaffold(t *testing.T) {
 }
 
 func TestMeta(t *testing.T) {
-	p, err := Parse([]byte("policy:\n  name: Base\n  url: https://stonewall.sh/policies/base.yml\n  description: >\n    Bare minimum.\nbin:\n  allowed: [cat]\n"))
+	p, err := Parse([]byte("policy:\n  name: Base\n  url: https://stonewall.sh/policies/base.yml\n  tier: 0\n  tags: [core]\n  description: >\n    Bare minimum.\nbin:\n  allowed: [cat]\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := &Meta{Name: "Base", URL: "https://stonewall.sh/policies/base.yml", Description: "Bare minimum.\n"}
+	tier := 0
+	want := &Meta{Name: "Base", URL: "https://stonewall.sh/policies/base.yml", Tier: &tier, Tags: []string{"core"}, Description: "Bare minimum.\n"}
 	if !reflect.DeepEqual(p.Meta, want) {
 		t.Fatalf("meta: got %+v want %+v", p.Meta, want)
 	}
