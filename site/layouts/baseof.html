@@ -10,7 +10,9 @@
 {{ $is404 := eq .RelPermalink "/404.html" }}
 {{ $title := .Title }}
 {{ if $is404 }}{{ $title = "Not found · stonewall.sh" }}{{ else if not .IsHome }}{{ $title = printf "%s · stonewall.sh" .Title }}{{ end }}
-{{ $description := strings.TrimSpace (.Description | default site.Params.description) }}
+{{ $description := .Description }}
+{{ if and (not $description) (eq .Section "agents") (not .IsSection) }}{{ $description = printf "How to run %s inside the stonewall sandbox." .Title }}{{ end }}
+{{ $description = strings.TrimSpace ($description | default site.Params.description) }}
 {{ $image := absURL site.Params.ogImage }}
 
 <title>{{ $title }}</title>
@@ -111,6 +113,7 @@ img{max-width:100%}
 .readme h1{color:var(--fg);font-size:36px}.readme h1 span{opacity:.45}.readme [align=center]{text-align:center}.readme [align=center] p{margin:8px 0}
 .notice{border:1px solid var(--accent2);border-radius:6px;padding:10px 14px;color:var(--mid);font-size:14px}
 .policy{padding:18px 0;border-bottom:1px solid var(--line)}.policy h2{border:0;padding:0;margin:0 0 8px}.policy p{margin:0 0 10px}.policy pre{margin:0}
+.tags{font:13px var(--mono);color:var(--dim);margin:0 0 10px}.tags code{color:var(--mid)}
 .crumb{font:13px var(--mono);color:var(--dim);margin:0 0 8px}.crumb a{color:var(--mid)}
 .source{border-left-color:var(--accent)}
 .schema h2 code,.schema h3 code{font:inherit;color:inherit;background:none;border:0;padding:0}.schema h2 small,.schema h3 small{font:13px var(--mono);color:var(--dim);margin-left:10px;font-weight:400}
@@ -124,8 +127,9 @@ footer{border-top:1px solid var(--line);color:var(--dim);font:13px var(--mono)}f
 <header><div class="in">
   <a class="brand" href="/"><img src="/docs/logo.svg" alt=""><b><span>stonewall</span><em>.sh</em></b></a>
   <nav>
-    <a href="/schema/"{{ if eq .RelPermalink "/schema/" }} aria-current="page"{{ end }}>Schema</a>
+    <a href="/agents/"{{ if eq .Section "agents" }} aria-current="page"{{ end }}>Agents</a>
     <a href="/policies/"{{ if eq .Section "policies" }} aria-current="page"{{ end }}>Policies</a>
+    <a href="/schema/"{{ if eq .RelPermalink "/schema/" }} aria-current="page"{{ end }}>Schema</a>
     <a href="{{ site.Params.github }}">GitHub</a>
   </nav>
 </div></header>

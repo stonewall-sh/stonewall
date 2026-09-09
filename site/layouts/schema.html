@@ -4,7 +4,7 @@
      examples are shown as they are written in a policy file. */}}
 {{ $s := resources.Get "schema.json" | transform.Unmarshal }}
 {{ $defs := index $s "$defs" }}
-{{ $order := slice "policy" "include" "bin" "project" "expose" "name" "url" "description" "allowed" "denied" "hidden" "readonly" "writable" "read" "write" "none" }}
+{{ $order := slice "policy" "include" "bin" "project" "expose" "name" "url" "tier" "tags" "description" "allowed" "denied" "hidden" "readonly" "writable" "read" "write" "none" }}
 <article class="schema">
 <h1>{{ $s.title }}</h1>
 <p class="lead">{{ $s.description | markdownify }}</p>

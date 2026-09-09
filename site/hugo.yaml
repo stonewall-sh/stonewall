@@ -10,7 +10,11 @@ cascade:
     target: {path: /license}
   - title: "Official Policies"   # same wording as the <h1> in layouts/policies/section.html
     description: "Official, ready-made stonewall.sh policies to include in your project's .stonewall.yml."
+    outputs: [html, policyindex]
     target: {path: /policies}
+  - title: "Supported Agents"   # same wording as the <h1> in layouts/agents/section.html
+    description: "How to run Claude Code, Codex, Gemini CLI and other AI coding agents inside the stonewall sandbox."
+    target: {path: /agents}
   - title: "stonewall.sh · Kernel-enforced sandbox for AI coding agents"   # <title> only, home.html doesn't render .Title
     target: {path: /}
 params:
@@ -22,6 +26,7 @@ module:
     - {source: ../policies,      target: static/policies}   # raw files, served as they are
     - {source: ../policies,      target: data/policies}     # parsed: hugo.Data.policies.<name>
     - {source: ../policies,      target: assets/policies}   # source text for the policy page
+    - {source: ../docs/agents,   target: content/agents}
     - {source: ../README.md,     target: content/_index.md}
     - {source: ../docs/logo.svg, target: static/docs/logo.svg}
     - {source: ../docs/logo.png, target: static/docs/logo.png}
@@ -38,8 +43,6 @@ mediaTypes:
   application/yaml: {suffixes: [yml, yaml]}
 outputFormats:
   policyindex: {mediaType: application/yaml, baseName: _index, isPlainText: true, notAlternative: true}
-outputs:
-  section: [html, policyindex]
 markup:
   goldmark:
     renderer: {unsafe: true}   # the README opens with <div align="center">
