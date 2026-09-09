@@ -1,0 +1,13 @@
+policies:
+    https://stonewall.sh/policies/base.yml:
+        sha256: 40a134b2c9ae0c06922be56c642280ce4a7a3a16eba24210409c3bcac9bd33b3
+        fetched: 2026-09-09T12:48:45.411313+02:00
+    https://stonewall.sh/policies/claude.yml:
+        sha256: fb7a242b0477c41b89289d916ad48096199be91eacf577c3f17c790498718cc1
+        fetched: 2026-09-09T12:48:45.548409+02:00
+    https://stonewall.sh/policies/python.yml:
+        sha256: 5bc6349ab0622e7e42f26931f426809c2a32ac79613f50ecfb2da26f27e0a5b9
+        fetched: 2026-09-09T12:48:47.609915+02:00
+    https://stonewall.sh/policies/snap.yml:
+        sha256: aef833f9d7ab2826ca6c077d5b42247630fc71368b87b5bfa09f3ec358e6239c
+        fetched: 2026-09-09T12:48:48.656313+02:00
