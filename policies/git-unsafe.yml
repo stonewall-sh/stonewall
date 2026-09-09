@@ -1,0 +1,28 @@
+# $schema: https://stonewall.sh/schema.json
+
+####################################################################################
+# This is an official stonewall.sh policy and should not be changed locally.       #
+# Please always review remote policies before applying them. Stonewall and its     #
+# policies come without warranty of any kind. See LICENSE for details.             #
+####################################################################################
+
+policy:
+  name: Git (unsafe)
+  url: https://stonewall.sh/policies/git-unsafe.yml
+  description: >
+    Allows all git commands, including destructive ones like commit, checkout, reset,
+    rebase, rm, mv and push. Makes .git writable and exposes ~/.ssh read-only, so the
+    agent can read keys. Include after base.yml. Intentionally does NOT include a
+    shell, editor or pager.
+project:
+  writable:
+    - .git
+bin:
+  allowed:
+    - git
+    - ssh
+expose:
+  read:
+    - ~/.gitconfig
+    - ~/.config/git
+    - ~/.ssh
