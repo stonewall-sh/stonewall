@@ -2,11 +2,12 @@
 <p class="crumb"><a href="{{ .Parent.RelPermalink }}">policies</a> / {{ .Params.file }}</p>
 <h1>{{ .Title }}</h1>
 {{ with .Params.meta.description }}<p class="lead">{{ . }}</p>{{ end }}
+{{ with .Params.meta.tags }}<p class="tags">{{ range . }}<code>{{ . }}</code> {{ end }}</p>{{ end }}
 {{ with .Params.meta.url }}
 <h2>Include</h2>
 <pre><code>stonewall policy include {{ . }}</code></pre>
 {{ end }}
 <h2>Source</h2>
 <p><a href="/policies/{{ .Params.file }}">Raw file</a> · <a href="{{ site.Params.github }}/blob/main/policies/{{ .Params.file }}">On GitHub</a></p>
-{{ with resources.Get (printf "policies/%s" .Params.file) }}<pre class="source"><code>{{ .Content }}</code></pre>{{ end }}
+{{ with resources.Get (printf "policies/%s" .Params.file) }}<div class="source">{{ highlight .Content "yaml" "" }}</div>{{ end }}
 {{ end }}

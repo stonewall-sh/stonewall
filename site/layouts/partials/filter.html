@@ -1,0 +1,12 @@
+{{/* Typeahead filter for card lists. Cards carry their search text in data-search; a .tier section hides when none of its cards match. */}}
+<input class="filter" type="search" placeholder="{{ . }}" aria-label="{{ . }}" autocomplete="off" autofocus>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.querySelector('.filter');
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    document.querySelectorAll('.card').forEach(c => c.hidden = !c.dataset.search.includes(q));
+    document.querySelectorAll('.tier').forEach(s => s.hidden = !s.querySelector('.card:not([hidden])'));
+  });
+});
+</script>

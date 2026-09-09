@@ -1,12 +1,16 @@
 {{ define "main" }}
 <h1>Supported Agents</h1>
 <p class="lead">
-  Stonewall runs any coding agent that can be started from the terminal. These have an official policy and a setup page:
+  Stonewall runs any coding agent that can be started from the terminal. The following supported agents come with
+  official policies and dedicated setup pages:
 </p>
-{{ range .Pages }}
-<section class="policy">
-  <h2><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
-  <p>Stonewall supports {{ .Title }} with a specific <a href="/policies/{{ .Params.slug }}/">default policy</a> and <a href="{{ .RelPermalink }}">usage instructions</a>.</p>
-</section>
-{{ end }}
+{{ partial "filter.html" "Filter agents…" }}
+<div class="cards">
+  {{ range .Pages }}
+  <a class="card" href="{{ .RelPermalink }}" data-search="{{ lower .Title }}">
+    <h3>{{ .Title }}</h3>
+    <p class="desc">Stonewall supports {{ .Title }} with a specific default policy and usage instructions.</p>
+  </a>
+  {{ end }}
+</div>
 {{ end }}
