@@ -1,0 +1,84 @@
+# $schema: https://stonewall.sh/schema.json
+
+####################################################################################
+# This is an official stonewall.sh policy and should not be changed locally.       #
+# Please always review remote policies before applying them. Stonewall and its     #
+# policies come without warranty of any kind. See LICENSE for details.             #
+####################################################################################
+
+policy:
+  name: Kotlin
+  url: https://stonewall.sh/policies/kotlin.yml
+  description: >
+    Kotlin development with the Kotlin compiler, ktlint and detekt on top of the
+    JDK, Maven, Gradle and Ant. JDK installations such as sdkman stay read-only;
+    credentials in ~/.m2/settings.xml or ~/.gradle/gradle.properties become
+    readable. kotlinc, kotlin and detekt are bash scripts and do not run; Gradle
+    builds and ktlint do. Intentionally does NOT include shells, curl, wget, git,
+    or tools that delete or move files.
+bin:
+  allowed:
+    # Kotlin
+    - kotlinc
+    - kotlinc-jvm
+    - kotlinc-js
+    - kotlinc-native
+    - konanc
+    - kotlin
+    - ktlint
+    - detekt
+    # JDK
+    - java
+    - javac
+    - jar
+    - jshell
+    - javadoc
+    - javap
+    - jdeps
+    - jdeprscan
+    - jlink
+    - jmod
+    - jpackage
+    - jcmd
+    - jps
+    - jstack
+    - jmap
+    - jinfo
+    - jstat
+    - jfr
+    - jhsdb
+    - jwebserver
+    - keytool
+    - jarsigner
+    # build tools
+    - mvn
+    - mvnd
+    - gradle
+    - ant
+    # called by the launcher scripts
+    - uname
+    - expr
+    - sed
+    - xargs
+    - tr
+    - ls
+    - dirname
+    - basename
+    - readlink
+    - which
+expose:
+  write:
+    - ~/.m2
+    - ~/.gradle
+    - ~/.java
+    - ~/.konan
+    - ~/.kotlin
+  read:
+    - ~/.mavenrc
+    - ~/.sdkman
+    - ~/.jdks
+    - ~/.jabba
+    - ~/.jenv
+    - ~/.asdf
+    - ~/.local/share/mise
+    - ~/Library/Java/JavaVirtualMachines

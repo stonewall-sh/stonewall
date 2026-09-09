@@ -1,0 +1,53 @@
+{{ define "main" }}
+{{/* Configuration reference for .stonewall.yml, generated from internal/policy/schema.json
+     (mounted as assets/schema.json). Every sentence and every example value is the schema's own;
+     examples are shown as they are written in a policy file. */}}
+{{ $s := resources.Get "schema.json" | transform.Unmarshal }}
+{{ $defs := index $s "$defs" }}
+{{ $order := slice "policy" "include" "bin" "project" "expose" "name" "url" "description" "allowed" "denied" "hidden" "readonly" "writable" "read" "write" "none" }}
+<article class="schema">
+<h1>{{ $s.title }}</h1>
+<p class="lead">{{ $s.description | markdownify }}</p>
+{{ with index $s "$comment" }}<p class="notice">{{ . }}</p>{{ end }}
+<p>This is rendered from original JSON schema, located at: <a href="/schema.json">stonewall.sh/schema.json</a></p>
+
+{{ range $key := partial "schema-keys" (dict "m" $s.properties "pref" $order) }}
+{{ $p := index $s.properties $key }}
+<section id="{{ $key }}">
+<h2><code>{{ $key }}</code> <small>{{ partial "schema-type" $p }}</small></h2>
+<p>{{ $p.description | markdownify }}</p>
+{{ range $p.examples }}{{ highlight (delimit (partial "schema-yaml" (dict "v" (dict $key .) "ind" "" "pref" $order)) "\n") "yaml" "" }}{{ end }}
+{{ range $sub := partial "schema-keys" (dict "m" ($p.properties | default dict) "pref" $order) }}
+{{ $q := index $p.properties $sub }}
+<h3 id="{{ $key }}.{{ $sub }}"><code>{{ $key }}.{{ $sub }}</code> <small>{{ if in ($p.required | default slice) $sub }}<b class="req">required</b> · {{ end }}{{ partial "schema-type" $q }}</small></h3>
+<p>{{ $q.description | markdownify }}</p>
+{{ range $q.examples }}{{ highlight (delimit (partial "schema-yaml" (dict "v" (dict $key (dict $sub .)) "ind" "" "pref" $order)) "\n") "yaml" "" }}{{ end }}
+{{ end }}
+</section>
+{{ end }}
+
+<h2 id="defs"><code>$defs</code></h2>
+{{ range $name := partial "schema-keys" (dict "m" $defs "pref" (slice "include" "programName" "projectPath" "hostPath")) }}
+{{ $d := index $defs $name }}
+<section id="def-{{ $name }}">
+<h3><code>{{ $name }}</code> <small>{{ $d.type }}</small></h3>
+<p>{{ $d.description | markdownify }}</p>
+{{ with $d.pattern }}<pre><code>pattern: {{ . }}</code></pre>{{ end }}
+{{ with $d.anyOf }}
+<p><code>anyOf</code></p>
+<ul>
+{{ range . }}<li>{{ .title }}: {{ with .pattern }}<code>{{ . }}</code>{{ end }}{{ with index . "$ref" }}<a href="#def-{{ path.Base . }}">{{ path.Base . }}</a>{{ end }}</li>
+{{ end }}
+</ul>
+{{ end }}
+{{ with $d.examples }}<p class="ex">examples: {{ range $i, $e := . }}{{ if $i }} {{ end }}<code>{{ $e }}</code>{{ end }}</p>{{ end }}
+{{ with index $d "$comment" }}<p class="comment">{{ . }}</p>{{ end }}
+</section>
+{{ end }}
+
+{{ with $s.examples }}
+<h2 id="examples"><code>examples</code></h2>
+{{ range . }}{{ highlight (delimit (partial "schema-yaml" (dict "v" . "ind" "" "pref" $order)) "\n") "yaml" "" }}{{ end }}
+{{ end }}
+</article>
+{{ end }}

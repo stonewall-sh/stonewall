@@ -1,23 +1,36 @@
 baseURL: https://stonewall.sh/
 title: Stonewall
 languageCode: en
-disableKinds: [taxonomy, term, rss, sitemap]
+disableKinds: [taxonomy, term, rss]
+# Per-page <title> / <meta name="description">. Policy pages get theirs from the policy yml
+# (see content/policies/_content.gotmpl); anything without a description falls back to params.description.
 cascade:
   - title: License
-    _target: {path: /license}
+    description: "Stonewall is open-source software released under the MIT license."
+    target: {path: /license}
+  - title: "Official Policies"   # same wording as the <h1> in layouts/policies/section.html
+    description: "Official, ready-made stonewall.sh policies to include in your project's .stonewall.yml."
+    target: {path: /policies}
+  - title: "stonewall.sh · Kernel-enforced sandbox for AI coding agents"   # <title> only, home.html doesn't render .Title
+    target: {path: /}
 params:
   github: https://github.com/stonewall-sh/stonewall
+  description: "Stonewall is a kernel-enforced sandbox for AI coding agents, drastically limiting access to tools, paths and project files, based on strictly enforced policies, not prompts."
+  ogImage: /og-image.png   # docs/og-image.png, source in docs/og-image.html
 module:
   mounts:
     - {source: ../policies,      target: static/policies}   # raw files, served as they are
-    - {source: ../policies,      target: data/policies}     # parsed: site.Data.policies.<name>
+    - {source: ../policies,      target: data/policies}     # parsed: hugo.Data.policies.<name>
     - {source: ../policies,      target: assets/policies}   # source text for the policy page
     - {source: ../README.md,     target: content/_index.md}
     - {source: ../docs/logo.svg, target: static/docs/logo.svg}
     - {source: ../docs/logo.png, target: static/docs/logo.png}
+    - {source: ../docs/og-image.png, target: static/og-image.png}
     - {source: ../install.sh,    target: static/install.sh}
-    - {source: ../internal/policy/schema.json, target: static/schema.json}
+    - {source: ../internal/policy/schema.json, target: static/schema.json}   # raw, served as it is
+    - {source: ../internal/policy/schema.json, target: assets/schema.json}   # rendered by layouts/schema.html
     - {source: ../CNAME,         target: static/CNAME}
+    - {source: ../robots.txt,    target: static/robots.txt}
     - {source: ../LICENSE,       target: content/license.md}
     - {source: content,          target: content}
     - {source: layouts,          target: layouts}

@@ -1,0 +1,60 @@
+# $schema: https://stonewall.sh/schema.json
+
+####################################################################################
+# This is an official stonewall.sh policy and should not be changed locally.       #
+# Please always review remote policies before applying them. Stonewall and its     #
+# policies come without warranty of any kind. See LICENSE for details.             #
+####################################################################################
+
+policy:
+  name: Go
+  url: https://stonewall.sh/policies/go.yml
+  description: >
+    Go development with gopls, the usual linters, formatters and test tools, and
+    the C compiler cgo needs. SDK installations such as goenv stay read-only and
+    modules come through the module proxy. Intentionally does NOT include shells,
+    curl, wget, git, or tools that delete or move files.
+bin:
+  allowed:
+    # Go
+    - go
+    - gofmt
+    - gopls
+    - goimports
+    - gofumpt
+    - golangci-lint
+    - staticcheck
+    - revive
+    - govulncheck
+    - gotestsum
+    - dlv
+    - mockgen
+    - stringer
+    # cgo
+    - gcc
+    - cc
+    - clang
+    - g++
+    - c++
+    - pkg-config
+    - as
+    - ld
+    - ar
+    - ranlib
+expose:
+  write:
+    - ~/go
+    - ~/.cache/go-build
+    - ~/.cache/golangci-lint
+    - ~/.cache/staticcheck
+    - ~/.cache/gopls
+    - ~/.config/go
+    - ~/Library/Caches/go-build
+    - ~/Library/Caches/golangci-lint
+  read:
+    - ~/sdk
+    - ~/.gvm
+    - ~/.g
+    - ~/.goenv
+    - ~/.asdf
+    - ~/.local/share/mise

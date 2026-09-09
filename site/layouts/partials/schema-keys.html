@@ -1,0 +1,6 @@
+{{/* Keys of map .m in the order of .pref (those present), followed by any others alphabetically.
+     Hugo ranges maps alphabetically, so this restores the order the schema lists them in. */}}
+{{- $m := .m }}{{ $keys := slice }}
+{{- range .pref }}{{ if isset $m . }}{{ $keys = $keys | append . }}{{ end }}{{ end }}
+{{- range $k, $_ := $m }}{{ if not (in $keys $k) }}{{ $keys = $keys | append $k }}{{ end }}{{ end }}
+{{- return $keys }}

@@ -1,0 +1,104 @@
+# $schema: https://stonewall.sh/schema.json
+
+####################################################################################
+# This is an official stonewall.sh policy and should not be changed locally.       #
+# Please always review remote policies before applying them. Stonewall and its     #
+# policies come without warranty of any kind. See LICENSE for details.             #
+####################################################################################
+
+policy:
+  name: Scala
+  url: https://stonewall.sh/policies/scala.yml
+  description: >
+    Scala development with scala-cli, sbt, mill, coursier, bloop and scalafmt on
+    top of the JDK, Maven, Gradle and Ant. JDK installations such as sdkman stay
+    read-only; credentials in ~/.m2, ~/.gradle or ~/.sbt become readable. scala,
+    scalac and sbt are bash scripts and do not run; scala-cli, coursier and bloop
+    do. Intentionally does NOT include shells, curl, wget, git, or tools that
+    delete or move files.
+bin:
+  allowed:
+    # Scala
+    - scala
+    - scalac
+    - scaladoc
+    - scala-cli
+    - sbt
+    - sbtn
+    - mill
+    - amm
+    - cs
+    - coursier
+    - bloop
+    - scalafmt
+    # JDK
+    - java
+    - javac
+    - jar
+    - jshell
+    - javadoc
+    - javap
+    - jdeps
+    - jdeprscan
+    - jlink
+    - jmod
+    - jpackage
+    - jcmd
+    - jps
+    - jstack
+    - jmap
+    - jinfo
+    - jstat
+    - jfr
+    - jhsdb
+    - jwebserver
+    - keytool
+    - jarsigner
+    # build tools
+    - mvn
+    - mvnd
+    - gradle
+    - ant
+    # called by the launcher scripts
+    - uname
+    - expr
+    - sed
+    - xargs
+    - tr
+    - ls
+    - dirname
+    - basename
+    - readlink
+    - which
+    - cat
+    - grep
+    - tail
+    - cut
+    - stty
+expose:
+  write:
+    - ~/.m2
+    - ~/.gradle
+    - ~/.java
+    - ~/.sbt
+    - ~/.ivy2
+    - ~/.cache/coursier
+    - ~/.local/share/coursier
+    - ~/.cache/scalacli
+    - ~/.local/share/scalacli
+    - ~/Library/Caches/ScalaCli
+    - ~/Library/Caches/Coursier
+    - ~/.bloop
+    - ~/.cache/bloop
+    - ~/.mill
+    - ~/.cache/mill
+    - ~/.ammonite
+  read:
+    - ~/.mavenrc
+    - ~/.sdkman
+    - ~/.jdks
+    - ~/.jabba
+    - ~/.jenv
+    - ~/.asdf
+    - ~/.local/share/mise
+    - ~/Library/Java/JavaVirtualMachines

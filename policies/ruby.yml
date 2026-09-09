@@ -1,0 +1,63 @@
+# $schema: https://stonewall.sh/schema.json
+
+####################################################################################
+# This is an official stonewall.sh policy and should not be changed locally.       #
+# Please always review remote policies before applying them. Stonewall and its     #
+# policies come without warranty of any kind. See LICENSE for details.             #
+####################################################################################
+
+policy:
+  name: Ruby
+  url: https://stonewall.sh/policies/ruby.yml
+  description: >
+    Ruby development with Bundler, RubyGems, Rake and the usual test runners,
+    linters and Rails commands. Ruby installations such as rbenv stay read-only, so
+    gems install into the project or ~/.gem; credentials in ~/.gemrc or
+    ~/.bundle/config become readable. rbenv shims are bash scripts and do not run.
+    Intentionally does NOT include shells, make, curl, wget, git, or tools that
+    delete or move files, so native extensions do not build.
+bin:
+  allowed:
+    # Ruby
+    - ruby
+    - gem
+    - bundle
+    - bundler
+    - rake
+    - irb
+    - erb
+    - ri
+    - rdoc
+    - rbs
+    - rspec
+    - minitest
+    - rubocop
+    - standardrb
+    - srb
+    - rails
+    - rackup
+    - puma
+    # native extensions: mkmf additionally needs make, which is not granted
+    - gcc
+    - g++
+    - cc
+    - c++
+    - pkg-config
+    - as
+    - ld
+    - ar
+    - ranlib
+expose:
+  write:
+    - ~/.gem
+    - ~/.bundle
+    - ~/.local/share/gem
+    - ~/.cache/rubocop_cache
+  read:
+    - ~/.gemrc
+    - ~/.irbrc
+    - ~/.rbenv
+    - ~/.rvm
+    - ~/.rubies
+    - ~/.asdf
+    - ~/.local/share/mise

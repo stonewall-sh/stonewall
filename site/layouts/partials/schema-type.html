@@ -1,0 +1,7 @@
+{{/* Type line for one schema node: type, items $ref, and the short constraints. */ -}}
+{{ .type }}
+{{- with .items }}{{ with index . "$ref" }} of <a href="#def-{{ path.Base . }}">{{ path.Base . }}</a>{{ end }}{{ end }}
+{{- with .format }} · format: {{ . }}{{ end }}
+{{- with .minLength }} · minLength: {{ . }}{{ end }}
+{{- if .uniqueItems }} · uniqueItems{{ end }}
+{{- with .pattern }} · pattern: <code>{{ . }}</code>{{ end }}

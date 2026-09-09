@@ -1,0 +1,72 @@
+# $schema: https://stonewall.sh/schema.json
+
+####################################################################################
+# This is an official stonewall.sh policy and should not be changed locally.       #
+# Please always review remote policies before applying them. Stonewall and its     #
+# policies come without warranty of any kind. See LICENSE for details.             #
+####################################################################################
+
+policy:
+  name: Java
+  url: https://stonewall.sh/policies/java.yml
+  description: >
+    JDK development with Maven, Gradle and Ant, including the helper programs
+    their launcher scripts call. JDK installations such as sdkman stay read-only;
+    credentials in ~/.m2/settings.xml or ~/.gradle/gradle.properties become
+    readable. Intentionally does NOT include shells, curl, wget, git, or tools that
+    delete or move files.
+bin:
+  allowed:
+    # JDK
+    - java
+    - javac
+    - jar
+    - jshell
+    - javadoc
+    - javap
+    - jdeps
+    - jdeprscan
+    - jlink
+    - jmod
+    - jpackage
+    - jcmd
+    - jps
+    - jstack
+    - jmap
+    - jinfo
+    - jstat
+    - jfr
+    - jhsdb
+    - jwebserver
+    - keytool
+    - jarsigner
+    # build tools
+    - mvn
+    - mvnd
+    - gradle
+    - ant
+    # called by the mvn, mvnd, gradle, mvnw and gradlew launcher scripts
+    - uname
+    - expr
+    - sed
+    - xargs
+    - tr
+    - ls
+    - dirname
+    - basename
+    - readlink
+    - which
+expose:
+  write:
+    - ~/.m2
+    - ~/.gradle
+    - ~/.java
+  read:
+    - ~/.mavenrc
+    - ~/.sdkman
+    - ~/.jdks
+    - ~/.jabba
+    - ~/.jenv
+    - ~/.asdf
+    - ~/.local/share/mise
+    - ~/Library/Java/JavaVirtualMachines

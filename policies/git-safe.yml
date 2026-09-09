@@ -1,0 +1,25 @@
+# $schema: https://stonewall.sh/schema.json
+
+####################################################################################
+# This is an official stonewall.sh policy and should not be changed locally.       #
+# Please always review remote policies before applying them. Stonewall and its     #
+# policies come without warranty of any kind. See LICENSE for details.             #
+####################################################################################
+
+policy:
+  name: Git (safe)
+  url: https://stonewall.sh/policies/git-safe.yml
+  description: >
+    Allows read-only git usage like status, diff, log, show and blame. The .git
+    directory is read-only, so commit, checkout, reset, rebase, rm, mv and fetch fail.
+    Intentionally does NOT expose ssh or any credentials.
+project:
+  readonly:
+    - .git
+bin:
+  allowed:
+    - git
+expose:
+  read:
+    - ~/.gitconfig
+    - ~/.config/git

@@ -1,7 +1,9 @@
-{{ range $name, $p := site.Data.policies }}
+{{ range $name, $p := hugo.Data.policies }}
   {{ $meta := $p.policy | default dict }}
   {{ $.AddPage (dict
        "path" $name
-       "title" ($meta.name | default $name)
+       "title" (printf "%s Policy" ($meta.name | default $name))
+       "description" $meta.description
+       "sitemap" (dict "priority" 0.5)
        "params" (dict "meta" $meta "file" (printf "%s.yml" $name))) }}
 {{ end }}
