@@ -1,0 +1,82 @@
+# $schema: https://stonewall.sh/schema.json
+
+####################################################################################
+# This is an official stonewall.sh policy and should not be changed locally.       #
+# Please always review remote policies before applying them. Stonewall and its     #
+# policies come without warranty of any kind. See LICENSE for details.             #
+####################################################################################
+
+policy:
+  name: JavaScript
+  url: https://stonewall.sh/policies/javascript.yml
+  description: >
+    Node.js, Bun and Deno development with the usual package managers, linters,
+    test runners and bundlers. Version managers stay read-only and tokens in
+    ~/.npmrc become readable. Intentionally does NOT include shells, python, make,
+    curl, wget, git, or tools that delete or move files, so native addons do not
+    build and npm run needs script-shell=/bin/sh in the project's .npmrc.
+bin:
+  allowed:
+    # JavaScript runtimes and package managers
+    - node
+    - npm
+    - npx
+    - corepack
+    - yarn
+    - pnpm
+    - pnpx
+    - bun
+    - bunx
+    - deno
+    - volta
+    # common tools when installed globally; project-local ones run through npx or scripts
+    - eslint
+    - prettier
+    - biome
+    - vitest
+    - jest
+    - mocha
+    - vite
+    - webpack
+    - esbuild
+    - rollup
+    - nodemon
+    # native addons: node-gyp additionally needs python3 and make, which are not granted
+    - gcc
+    - g++
+    - cc
+    - c++
+    - pkg-config
+    - as
+    - ld
+    - ar
+    - ranlib
+expose:
+  write:
+    - ~/.npm
+    - ~/.yarn
+    - ~/.cache/yarn
+    - ~/.local/share/pnpm
+    - ~/.cache/pnpm
+    - ~/.bun
+    - ~/.deno
+    - ~/.cache/deno
+    - ~/.cache/node
+    - ~/.cache/node-gyp
+    - ~/.config/configstore
+    - ~/Library/pnpm
+    - ~/Library/Caches/Yarn
+    - ~/Library/Caches/deno
+    - ~/Library/Caches/node-gyp
+  read:
+    - ~/.npmrc
+    - ~/.yarnrc
+    - ~/.yarnrc.yml
+    - ~/.nvm
+    - ~/.volta
+    - ~/.fnm
+    - ~/.local/share/fnm
+    - ~/.n
+    - ~/.nodenv
+    - ~/.asdf
+    - ~/.local/share/mise

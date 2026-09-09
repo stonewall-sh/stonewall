@@ -1,0 +1,42 @@
+# $schema: https://stonewall.sh/schema.json
+
+####################################################################################
+# This is an official stonewall.sh policy and should not be changed locally.       #
+# Please always review remote policies before applying them. Stonewall and its     #
+# policies come without warranty of any kind. See LICENSE for details.             #
+####################################################################################
+
+policy:
+  name: C#
+  url: https://stonewall.sh/policies/csharp.yml
+  description: >
+    .NET development with the dotnet CLI, common global tools, Mono and MSBuild.
+    NuGet credentials in NuGet.Config become readable; user secrets under
+    ~/.microsoft stay hidden. Intentionally does NOT include shells, curl, wget,
+    git, or tools that delete or move files.
+bin:
+  allowed:
+    # .NET
+    - dotnet
+    - csharpier
+    - dotnet-ef
+    - dotnet-format
+    - dotnet-outdated
+    - dotnet-reportgenerator
+    # Mono
+    - mono
+    - msbuild
+    - nuget
+expose:
+  write:
+    - ~/.dotnet
+    - ~/.nuget
+    - ~/.local/share/NuGet
+    - ~/.templateengine
+    - ~/.mono
+    - ~/Library/Caches/NuGet
+  read:
+    - ~/.config/NuGet
+    - ~/.omnisharp
+    - ~/.asdf
+    - ~/.local/share/mise

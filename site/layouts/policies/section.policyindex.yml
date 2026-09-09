@@ -1,7 +1,7 @@
 {{- $list := slice -}}
 {{- range $p := .Pages -}}
   {{- if $p.Params.meta.url -}}
-    {{- $list = $list | append (dict "name" $p.Title "url" $p.Params.meta.url "description" ($p.Params.meta.description | default "" | strings.TrimSpace | replaceRE "\\s+" " ")) -}}
+    {{- $list = $list | append (dict "name" ($p.Params.meta.name | default $p.Title) "url" $p.Params.meta.url "description" ($p.Params.meta.description | default "" | strings.TrimSpace | replaceRE "\\s+" " ")) -}}
   {{- end -}}
 {{- end -}}
 {{ dict "policies" $list | transform.Remarshal "yaml" }}

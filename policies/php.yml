@@ -1,0 +1,46 @@
+# $schema: https://stonewall.sh/schema.json
+
+####################################################################################
+# This is an official stonewall.sh policy and should not be changed locally.       #
+# Please always review remote policies before applying them. Stonewall and its     #
+# policies come without warranty of any kind. See LICENSE for details.             #
+####################################################################################
+
+policy:
+  name: PHP
+  url: https://stonewall.sh/policies/php.yml
+  description: >
+    PHP development with Composer and the usual test runners, static analysers,
+    formatters and Symfony or Laravel commands. Interpreter installations such as
+    phpenv stay read-only; credentials in Composer's auth.json become readable.
+    Intentionally does NOT include shells, curl, wget, git, or tools that delete or
+    move files.
+bin:
+  allowed:
+    # PHP
+    - php
+    - composer
+    - phpunit
+    - pest
+    - phpstan
+    - psalm
+    - php-cs-fixer
+    - phpcs
+    - phpcbf
+    - phpmd
+    - rector
+    - symfony
+    - laravel
+expose:
+  write:
+    - ~/.composer
+    - ~/.config/composer
+    - ~/.cache/composer
+    - ~/.symfony5
+    - ~/Library/Caches/composer
+  read:
+    - ~/.phpenv
+    - ~/.phpbrew
+    - ~/Library/Application Support/Herd
+    - ~/.asdf
+    - ~/.local/share/mise
