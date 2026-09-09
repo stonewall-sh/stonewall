@@ -1,0 +1,23 @@
+# $schema: https://stonewall.sh/schema.json
+
+####################################################################################
+# This is an official stonewall.sh policy and should not be changed locally.       #
+# Please always review remote policies before applying them. Stonewall and its     #
+# policies come without warranty of any kind. See LICENSE for details.             #
+####################################################################################
+
+policy:
+  name: Crush
+  url: https://stonewall.sh/policies/crush.yml
+  description: >
+    Allows access to the minimum binaries and locations needed by Crush.
+    Intentionally does NOT include any additional, potentially invasive tools like
+    sh, bash, git, LSP or MCP servers, etc.
+bin:
+  allowed:
+    - crush
+expose:
+  read:
+    - ~/.config/crush
+  write:
+    - ~/.local/share/crush
