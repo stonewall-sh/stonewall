@@ -9,6 +9,9 @@
 policy:
   name: Cursor CLI
   url: https://stonewall.sh/policies/cursor-agent.yml
+  tier: 3
+  tags:
+    - coding-agent
   description: >
     Allows access to the minimum binaries and locations needed by Cursor CLI.
     Includes bash and a few coreutils because the cursor-agent launcher is a bash

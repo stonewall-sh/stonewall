@@ -9,6 +9,10 @@
 policy:
   name: Java
   url: https://stonewall.sh/policies/java.yml
+  tier: 2
+  tags:
+    - language
+    - jvm
   description: >
     JDK development with Maven, Gradle and Ant, including the helper programs
     their launcher scripts call. JDK installations such as sdkman stay read-only;

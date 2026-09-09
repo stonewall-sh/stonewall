@@ -9,6 +9,10 @@
 policy:
   name: Snap
   url: https://stonewall.sh/policies/snap.yml
+  tier: 0
+  tags:
+    - core
+    - linux
   description: >
     Makes files installed under /snap readable inside the sandbox. Stonewall only
     mounts the usual system directories, so a program whose files live under /snap,

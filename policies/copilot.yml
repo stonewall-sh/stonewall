@@ -9,6 +9,9 @@
 policy:
   name: GitHub Copilot CLI
   url: https://stonewall.sh/policies/copilot.yml
+  tier: 3
+  tags:
+    - coding-agent
   description: >
     Allows access to the minimum binaries and locations needed by GitHub Copilot CLI.
     Intentionally does NOT include any additional, potentially invasive tools like

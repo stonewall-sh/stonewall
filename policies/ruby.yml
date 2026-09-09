@@ -9,6 +9,9 @@
 policy:
   name: Ruby
   url: https://stonewall.sh/policies/ruby.yml
+  tier: 2
+  tags:
+    - language
   description: >
     Ruby development with Bundler, RubyGems, Rake and the usual test runners,
     linters and Rails commands. Ruby installations such as rbenv stay read-only, so

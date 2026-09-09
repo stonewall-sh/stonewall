@@ -9,6 +9,10 @@
 policy:
   name: Auggie CLI
   url: https://stonewall.sh/policies/auggie.yml
+  tier: 3
+  tags:
+    - coding-agent
+    - augment
   description: >
     Allows access to the minimum binaries and locations needed by Auggie CLI.
     Intentionally does NOT include any additional, potentially invasive tools like

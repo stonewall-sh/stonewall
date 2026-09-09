@@ -9,6 +9,10 @@
 policy:
   name: Qwen Code
   url: https://stonewall.sh/policies/qwen.yml
+  tier: 3
+  tags:
+    - coding-agent
+    - alibaba
   description: >
     Allows access to the minimum binaries and locations needed by Qwen Code.
     Intentionally does NOT include any additional, potentially invasive tools like

@@ -9,6 +9,9 @@
 policy:
   name: OpenCode
   url: https://stonewall.sh/policies/opencode.yml
+  tier: 3
+  tags:
+    - coding-agent
   description: >
     Allows access to the minimum binaries and locations needed by OpenCode.
     Intentionally does NOT include any additional, potentially invasive tools like

@@ -9,6 +9,10 @@
 policy:
   name: Amp
   url: https://stonewall.sh/policies/amp.yml
+  tier: 3
+  tags:
+    - coding-agent
+    - sourcegraph
   description: >
     Allows access to the minimum binaries and locations needed by Amp.
     Intentionally does NOT include any additional, potentially invasive tools like

@@ -9,6 +9,10 @@
 policy:
   name: Goose
   url: https://stonewall.sh/policies/goose.yml
+  tier: 3
+  tags:
+    - coding-agent
+    - block
   description: >
     Allows access to the minimum binaries and locations needed by Goose.
     Intentionally does NOT include any additional, potentially invasive tools like

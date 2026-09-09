@@ -9,6 +9,10 @@
 policy:
   name: Crush
   url: https://stonewall.sh/policies/crush.yml
+  tier: 3
+  tags:
+    - coding-agent
+    - charm
   description: >
     Allows access to the minimum binaries and locations needed by Crush.
     Intentionally does NOT include any additional, potentially invasive tools like

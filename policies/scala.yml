@@ -9,6 +9,10 @@
 policy:
   name: Scala
   url: https://stonewall.sh/policies/scala.yml
+  tier: 2
+  tags:
+    - language
+    - jvm
   description: >
     Scala development with scala-cli, sbt, mill, coursier, bloop and scalafmt on
     top of the JDK, Maven, Gradle and Ant. JDK installations such as sdkman stay

@@ -9,6 +9,10 @@
 policy:
   name: C#
   url: https://stonewall.sh/policies/csharp.yml
+  tier: 2
+  tags:
+    - language
+    - dotnet
   description: >
     .NET development with the dotnet CLI, common global tools, Mono and MSBuild.
     NuGet credentials in NuGet.Config become readable; user secrets under

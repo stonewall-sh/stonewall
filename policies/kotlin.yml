@@ -9,6 +9,10 @@
 policy:
   name: Kotlin
   url: https://stonewall.sh/policies/kotlin.yml
+  tier: 2
+  tags:
+    - language
+    - jvm
   description: >
     Kotlin development with the Kotlin compiler, ktlint and detekt on top of the
     JDK, Maven, Gradle and Ant. JDK installations such as sdkman stay read-only;

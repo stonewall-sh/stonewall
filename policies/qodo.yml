@@ -9,6 +9,9 @@
 policy:
   name: Qodo Command
   url: https://stonewall.sh/policies/qodo.yml
+  tier: 3
+  tags:
+    - coding-agent
   description: >
     Allows access to the minimum binaries and locations needed by Qodo Command.
     Intentionally does NOT include any additional, potentially invasive tools like

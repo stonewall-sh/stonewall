@@ -8,6 +8,10 @@
 policy:
   name: Kiro CLI
   url: https://stonewall.sh/policies/kiro-cli.yml
+  tier: 3
+  tags:
+    - coding-agent
+    - aws
   description: >
     Allows access to the minimum binaries and locations needed by Kiro CLI.
     Intentionally does NOT include any additional, potentially invasive tools like

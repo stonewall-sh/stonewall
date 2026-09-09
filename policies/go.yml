@@ -9,6 +9,9 @@
 policy:
   name: Go
   url: https://stonewall.sh/policies/go.yml
+  tier: 2
+  tags:
+    - language
   description: >
     Go development with gopls, the usual linters, formatters and test tools, and
     the C compiler cgo needs. SDK installations such as goenv stay read-only and

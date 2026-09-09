@@ -12,6 +12,7 @@ policy:
   tier: 3
   tags:
     - coding-agent
+    - openai
   description: >
     Allows access to the minimum binaries and locations needed by Codex CLI.
     Intentionally does NOT include any additional, potentially invasive tools like

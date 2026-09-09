@@ -9,6 +9,9 @@
 policy:
   name: Kilo CLI
   url: https://stonewall.sh/policies/kilo.yml
+  tier: 3
+  tags:
+    - coding-agent
   description: >
     Allows access to the minimum binaries and locations needed by Kilo CLI.
     Intentionally does NOT include any additional, potentially invasive tools like

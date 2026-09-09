@@ -9,6 +9,9 @@
 policy:
   name: Factory Droid
   url: https://stonewall.sh/policies/droid.yml
+  tier: 3
+  tags:
+    - coding-agent
   description: >
     Allows access to the minimum binaries and locations needed by Factory Droid.
     Intentionally does NOT include any additional, potentially invasive tools like

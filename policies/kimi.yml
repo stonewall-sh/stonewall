@@ -9,6 +9,10 @@
 policy:
   name: Kimi Code CLI
   url: https://stonewall.sh/policies/kimi.yml
+  tier: 3
+  tags:
+    - coding-agent
+    - moonshot
   description: >
     Allows access to the minimum binaries and locations needed by Kimi Code CLI.
     Intentionally does NOT include any additional, potentially invasive tools like

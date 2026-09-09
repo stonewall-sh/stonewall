@@ -9,6 +9,10 @@
 policy:
   name: Grok CLI
   url: https://stonewall.sh/policies/grok.yml
+  tier: 3
+  tags:
+    - coding-agent
+    - xai
   description: >
     Allows access to the minimum binaries and locations needed by Grok CLI.
     Intentionally does NOT include any additional, potentially invasive tools like

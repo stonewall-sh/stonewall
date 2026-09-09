@@ -9,6 +9,9 @@
 policy:
   name: Pi Coding Agent
   url: https://stonewall.sh/policies/pi.yml
+  tier: 3
+  tags:
+    - coding-agent
   description: >
     Allows access to the minimum binaries and locations needed by Pi Coding Agent.
     Intentionally does NOT include any additional, potentially invasive tools like

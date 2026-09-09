@@ -9,6 +9,10 @@
 policy:
   name: Junie CLI
   url: https://stonewall.sh/policies/junie.yml
+  tier: 3
+  tags:
+    - coding-agent
+    - jetbrains
   description: >
     Allows access to the minimum binaries and locations needed by Junie CLI.
     Intentionally does NOT include any additional, potentially invasive tools like

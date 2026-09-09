@@ -9,6 +9,10 @@
 policy:
   name: TypeScript
   url: https://stonewall.sh/policies/typescript.yml
+  tier: 2
+  tags:
+    - language
+    - node
   description: >
     TypeScript development with the compiler and runners on top of Node.js, Bun
     and Deno, their package managers, linters, test runners and bundlers. Version

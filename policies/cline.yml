@@ -9,6 +9,9 @@
 policy:
   name: Cline CLI
   url: https://stonewall.sh/policies/cline.yml
+  tier: 3
+  tags:
+    - coding-agent
   description: >
     Allows access to the minimum binaries and locations needed by Cline CLI.
     Intentionally does NOT include any additional, potentially invasive tools like

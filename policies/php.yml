@@ -9,6 +9,9 @@
 policy:
   name: PHP
   url: https://stonewall.sh/policies/php.yml
+  tier: 2
+  tags:
+    - language
   description: >
     PHP development with Composer and the usual test runners, static analysers,
     formatters and Symfony or Laravel commands. Interpreter installations such as
