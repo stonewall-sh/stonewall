@@ -1,12 +1,15 @@
 export GOFLAGS = -buildvcs=false
 
-.PHONY: build test e2e e2e-linux site clean
+.PHONY: build test policies e2e e2e-linux site clean
 
 build:
 	go build -o stonewall .
 
 test:
 	go test ./...
+
+policies: build
+	test/policies.sh ./stonewall
 
 e2e: build
 	test/e2e.sh ./stonewall
