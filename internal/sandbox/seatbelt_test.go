@@ -7,6 +7,7 @@ func TestSeatbeltProfile(t *testing.T) {
 	want := `(version 1)
 (allow default)
 (deny file-read* file-write* (subpath "/home/u"))
+(allow file-read-metadata (literal "/home/u"))
 (allow file-read* file-write* (subpath "/home/u/proj"))
 (allow file-read* file-write* (subpath "/home/u/.claude"))
 (allow file-read* (subpath "/home/u/.gitconfig"))

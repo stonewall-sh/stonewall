@@ -10,6 +10,7 @@ func SeatbeltProfile(p *Plan) string {
 	var b strings.Builder
 	b.WriteString("(version 1)\n(allow default)\n")
 	fmt.Fprintf(&b, "(deny file-read* file-write* (subpath %s))\n", sbpl(p.Home))
+	fmt.Fprintf(&b, "(allow file-read-metadata (literal %s))\n", sbpl(p.Home)) // stat only, no listing: node and bash resolve exposed paths through $HOME
 	fmt.Fprintf(&b, "(allow file-read* file-write* (subpath %s))\n", sbpl(p.Project))
 	for _, e := range p.ExposeWrite {
 		fmt.Fprintf(&b, "(allow file-read* file-write* (subpath %s))\n", sbpl(e))
