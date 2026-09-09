@@ -39,6 +39,28 @@ func TestParse(t *testing.T) {
 	}
 }
 
+// The same item in two lists of one source is an error naming both lists.
+func TestMergeConflicts(t *testing.T) {
+	for _, c := range []struct {
+		src  Policy
+		want []string
+	}{
+		{Policy{Bin: Bin{Allowed: []string{"bash"}, Denied: []string{"bash"}}}, []string{"bin.allowed", "bin.denied"}},
+		{Policy{Project: Project{Hidden: []string{"docs"}, Writable: []string{"docs/"}}}, []string{"project.hidden", "project.writable"}},
+		{Policy{Expose: Expose{Read: []string{"~/.npm"}, None: []string{"~/.npm"}}}, []string{"expose.read", "expose.none"}},
+	} {
+		_, err := Merge(c.src)
+		if err == nil {
+			t.Fatalf("%+v: no error", c.src)
+		}
+		for _, w := range c.want {
+			if !strings.Contains(err.Error(), w) {
+				t.Errorf("error %q does not name %s", err, w)
+			}
+		}
+	}
+}
+
 func TestMerge(t *testing.T) {
 	// (a) a later source reclassifies a project path and an expose path.
 	got, err := Merge(
@@ -94,27 +116,7 @@ func TestMerge(t *testing.T) {
 		t.Fatalf("local wins: got %+v want %+v", got, want)
 	}
 
-	// (d) the same item in two lists of one source is an error naming both lists.
-	for _, c := range []struct {
-		src  Policy
-		want []string
-	}{
-		{Policy{Bin: Bin{Allowed: []string{"bash"}, Denied: []string{"bash"}}}, []string{"bin.allowed", "bin.denied"}},
-		{Policy{Project: Project{Hidden: []string{"docs"}, Writable: []string{"docs/"}}}, []string{"project.hidden", "project.writable"}},
-		{Policy{Expose: Expose{Read: []string{"~/.npm"}, None: []string{"~/.npm"}}}, []string{"expose.read", "expose.none"}},
-	} {
-		_, err := Merge(c.src)
-		if err == nil {
-			t.Fatalf("%+v: no error", c.src)
-		}
-		for _, w := range c.want {
-			if !strings.Contains(err.Error(), w) {
-				t.Errorf("error %q does not name %s", err, w)
-			}
-		}
-	}
-
-	// (e) a trailing slash is not a different path: it evades neither a negation nor the conflict check.
+	// (d) a trailing slash is not a different path: it evades neither a negation nor the conflict check.
 	got, err = Merge(
 		Policy{Expose: Expose{Read: []string{"/a/b/"}}},
 		Policy{Expose: Expose{None: []string{"/a/b"}}},
@@ -129,7 +131,7 @@ func TestMerge(t *testing.T) {
 		t.Error("trailing slash evaded the expose conflict check")
 	}
 
-	// (f) the result carries no Include and keeps first-seen order.
+	// (e) the result carries no Include and keeps first-seen order.
 	got, err = Merge(
 		Policy{Include: []string{"a.yml"}, Bin: Bin{Allowed: []string{"sh", "git"}}},
 		Policy{Include: []string{"b.yml"}, Bin: Bin{Allowed: []string{"make", "git"}}},
