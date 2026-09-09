@@ -9,6 +9,10 @@
 policy:
   name: Base
   url: https://stonewall.sh/policies/base.yml
+  tier: 0
+  tags:
+    - core
+    - readonly
   description: >
     Provides a safe, minimalistic base policy applicable to any project. It
     intentionally does NOT include anything language-, framework- or agent-specific

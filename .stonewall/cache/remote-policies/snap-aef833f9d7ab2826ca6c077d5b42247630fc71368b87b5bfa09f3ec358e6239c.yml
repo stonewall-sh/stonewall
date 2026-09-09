@@ -1,0 +1,21 @@
+# $schema: https://stonewall.sh/schema.json
+
+####################################################################################
+# This is an official stonewall.sh policy and should not be changed locally.       #
+# Please always review remote policies before applying them. Stonewall and its     #
+# policies come without warranty of any kind. See LICENSE for details.             #
+####################################################################################
+
+policy:
+  name: Snap
+  url: https://stonewall.sh/policies/snap.yml
+  description: >
+    Makes files installed under /snap readable inside the sandbox. Stonewall only
+    mounts the usual system directories, so a program whose files live under /snap,
+    such as the JDK bundled with a snap-installed IDE, would otherwise start without
+    its libraries. It grants no programs itself: list the ones you need in
+    bin.allowed. Programs started through /snap/bin still fail, because they run
+    through snapd, whose confinement cannot be set up inside the sandbox.
+expose:
+  read:
+    - /snap

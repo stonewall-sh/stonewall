@@ -1,0 +1,31 @@
+# $schema: https://stonewall.sh/schema.json
+
+####################################################################################
+# This is an official stonewall.sh policy and should not be changed locally.       #
+# Please always review remote policies before applying them. Stonewall and its     #
+# policies come without warranty of any kind. See LICENSE for details.             #
+####################################################################################
+
+policy:
+  name: Kilo CLI
+  url: https://stonewall.sh/policies/kilo.yml
+  tier: 3
+  tags:
+    - coding-agent
+  description: >
+    Allows access to the minimum binaries and locations needed by Kilo CLI.
+    Intentionally does NOT include any additional, potentially invasive tools like
+    sh, bash, git, etc.
+bin:
+  allowed:
+    - kilo
+    - kilocode
+    - node
+expose:
+  read:
+    - ~/.kilo
+  write:
+    - ~/.config/kilo
+    - ~/.local/share/kilo
+    - ~/.local/state/kilo
+    - ~/.cache/kilo

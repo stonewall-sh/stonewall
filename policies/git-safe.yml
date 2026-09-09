@@ -9,6 +9,11 @@
 policy:
   name: Git (safe)
   url: https://stonewall.sh/policies/git-safe.yml
+  tier: 1
+  tags:
+    - tool
+    - vcs
+    - safe
   description: >
     Allows read-only git usage like status, diff, log, show and blame. The .git
     directory is read-only, so commit, checkout, reset, rebase, rm, mv and fetch fail.

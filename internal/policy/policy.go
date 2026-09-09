@@ -20,9 +20,11 @@ const FileName = ".stonewall.yml"
 
 // Meta describes a policy to people and to the policy index. It has no effect on the sandbox.
 type Meta struct {
-	Name        string `yaml:"name,omitempty"`
-	URL         string `yaml:"url,omitempty"`
-	Description string `yaml:"description,omitempty"`
+	Name        string   `yaml:"name,omitempty"`
+	URL         string   `yaml:"url,omitempty"`
+	Tier        *int     `yaml:"tier,omitempty"` // display order on the policy site, nil sorts last
+	Tags        []string `yaml:"tags,omitempty"`
+	Description string   `yaml:"description,omitempty"`
 }
 
 // Policy is a parsed .stonewall.yml. All fields are optional.

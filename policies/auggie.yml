@@ -1,0 +1,26 @@
+# $schema: https://stonewall.sh/schema.json
+
+####################################################################################
+# This is an official stonewall.sh policy and should not be changed locally.       #
+# Please always review remote policies before applying them. Stonewall and its     #
+# policies come without warranty of any kind. See LICENSE for details.             #
+####################################################################################
+
+policy:
+  name: Auggie CLI
+  url: https://stonewall.sh/policies/auggie.yml
+  tier: 3
+  tags:
+    - coding-agent
+    - augment
+  description: >
+    Allows access to the minimum binaries and locations needed by Auggie CLI.
+    Intentionally does NOT include any additional, potentially invasive tools like
+    sh, bash, git, etc.
+bin:
+  allowed:
+    - auggie
+    - node
+expose:
+  write:
+    - ~/.augment

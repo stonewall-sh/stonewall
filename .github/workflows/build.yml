@@ -44,6 +44,9 @@ jobs:
       - name: Unit tests
         run: make test
 
+      - name: Official policies
+        run: make policies
+
       - name: End-to-end
         run: make e2e
 

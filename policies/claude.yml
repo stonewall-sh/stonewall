@@ -9,6 +9,10 @@
 policy:
   name: Claude Code
   url: https://stonewall.sh/policies/claude.yml
+  tier: 3
+  tags:
+    - coding-agent
+    - anthropic
   description: >
     Allows access to the minimum binaries and locations needed by Claude Code.
     Intentionally does NOT include any additional, potentially invasive tools like

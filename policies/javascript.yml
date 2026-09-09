@@ -9,6 +9,10 @@
 policy:
   name: JavaScript
   url: https://stonewall.sh/policies/javascript.yml
+  tier: 2
+  tags:
+    - language
+    - node
   description: >
     Node.js, Bun and Deno development with the usual package managers, linters,
     test runners and bundlers. Version managers stay read-only and tokens in

@@ -1,0 +1,33 @@
+# $schema: https://stonewall.sh/schema.json
+
+####################################################################################
+# This is an official stonewall.sh policy and should not be changed locally.       #
+# Please always review remote policies before applying them. Stonewall and its     #
+# policies come without warranty of any kind. See LICENSE for details.             #
+####################################################################################
+
+policy:
+  name: Cursor CLI
+  url: https://stonewall.sh/policies/cursor-agent.yml
+  tier: 3
+  tags:
+    - coding-agent
+  description: >
+    Allows access to the minimum binaries and locations needed by Cursor CLI.
+    Includes bash and a few coreutils because the cursor-agent launcher is a bash
+    script and does not run without them. Intentionally does NOT include git or
+    other potentially invasive tools.
+bin:
+  allowed:
+    - cursor-agent
+    - agent
+    - bash
+    - basename
+    - dirname
+    - readlink
+    - realpath
+expose:
+  read:
+    - ~/.local/share/cursor-agent
+  write:
+    - ~/.cursor

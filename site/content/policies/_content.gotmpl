@@ -1,9 +1,11 @@
 {{ range $name, $p := hugo.Data.policies }}
   {{ $meta := $p.policy | default dict }}
+  {{ $tier := cond (isset $meta "tier") $meta.tier 99 }}
   {{ $.AddPage (dict
        "path" $name
        "title" (printf "%s Policy" ($meta.name | default $name))
        "description" $meta.description
+       "weight" (add $tier 1)
        "sitemap" (dict "priority" 0.5)
        "params" (dict "meta" $meta "file" (printf "%s.yml" $name))) }}
 {{ end }}

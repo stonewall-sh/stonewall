@@ -32,6 +32,29 @@
             "https://stonewall.sh/policies/base.yml"
           ]
         },
+        "tier": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Orders official policies on https://stonewall.sh/policies from low to high: 0 operating system and environment, 1 basic tools, 2 programming languages and frameworks, 3 agents. Policies without a tier sort last, as if they had tier 99.",
+          "examples": [
+            2
+          ]
+        },
+        "tags": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Free-form keywords describing the policy, for content and search on the policy site.",
+          "examples": [
+            [
+              "language",
+              "go"
+            ]
+          ],
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
         "description": {
           "type": "string",
           "minLength": 1,

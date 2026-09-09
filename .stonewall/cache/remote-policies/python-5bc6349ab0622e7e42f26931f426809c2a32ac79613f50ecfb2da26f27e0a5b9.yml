@@ -1,0 +1,103 @@
+# $schema: https://stonewall.sh/schema.json
+
+####################################################################################
+# This is an official stonewall.sh policy and should not be changed locally.       #
+# Please always review remote policies before applying them. Stonewall and its     #
+# policies come without warranty of any kind. See LICENSE for details.             #
+####################################################################################
+
+policy:
+  name: Python
+  url: https://stonewall.sh/policies/python.yml
+  description: >
+    Python development with pip, uv, poetry, pdm, pipenv, hatch or conda and the
+    usual test, lint, format and type-check tools. Interpreter installations such
+    as pyenv stay read-only, so packages go into virtual environments or the user
+    site; credentials in pip or uv configuration become readable. pyenv shims are
+    bash scripts and do not run. Intentionally does NOT include shells, make, curl,
+    wget, git, or tools that delete or move files.
+bin:
+  allowed:
+    # interpreters
+    - python
+    - python3
+    - python3.10
+    - python3.11
+    - python3.12
+    - python3.13
+    - python3.14
+    - ipython
+    # package and environment managers
+    - pip
+    - pip3
+    - pipx
+    - uv
+    - uvx
+    - poetry
+    - pdm
+    - pipenv
+    - hatch
+    - tox
+    - nox
+    - conda
+    - mamba
+    - micromamba
+    # test, lint, format, type-check
+    - pytest
+    - coverage
+    - ruff
+    - black
+    - isort
+    - flake8
+    - pylint
+    - mypy
+    - pyright
+    # native extensions
+    - gcc
+    - g++
+    - cc
+    - c++
+    - pkg-config
+    - as
+    - ld
+    - ar
+    - ranlib
+expose:
+  write:
+    - ~/.cache/pip
+    - ~/.cache/uv
+    - ~/.local/share/uv
+    - ~/.cache/pypoetry
+    - ~/.local/share/pypoetry
+    - ~/.cache/pdm
+    - ~/.local/share/pdm
+    - ~/.local/share/virtualenvs
+    - ~/.cache/hatch
+    - ~/.local/share/hatch
+    - ~/.local/share/pipx
+    - ~/.local/pipx
+    - ~/.local/lib
+    - ~/.virtualenvs
+    - ~/.cache/ruff
+    - ~/.cache/pylint
+    - ~/.ipython
+    - ~/.conda
+    - ~/Library/Caches/pip
+    - ~/Library/Caches/uv
+    - ~/Library/Caches/pypoetry
+    - ~/Library/Application Support/pypoetry
+    - ~/Library/Application Support/hatch
+  read:
+    - ~/.config/pip
+    - ~/.pip
+    - ~/.config/uv
+    - ~/.config/pypoetry
+    - ~/.config/pdm
+    - ~/.pyenv
+    - ~/.rye
+    - ~/miniconda3
+    - ~/anaconda3
+    - ~/miniforge3
+    - ~/mambaforge
+    - ~/.asdf
+    - ~/.local/share/mise

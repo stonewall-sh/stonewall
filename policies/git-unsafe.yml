@@ -9,6 +9,11 @@
 policy:
   name: Git (unsafe)
   url: https://stonewall.sh/policies/git-unsafe.yml
+  tier: 1
+  tags:
+    - tool
+    - vcs
+    - unsafe
   description: >
     Allows all git commands, including destructive ones like commit, checkout, reset,
     rebase, rm, mv and push. Makes .git writable and exposes ~/.ssh read-only, so the

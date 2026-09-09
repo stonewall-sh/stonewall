@@ -9,6 +9,9 @@
 policy:
   name: Python
   url: https://stonewall.sh/policies/python.yml
+  tier: 2
+  tags:
+    - language
   description: >
     Python development with pip, uv, poetry, pdm, pipenv, hatch or conda and the
     usual test, lint, format and type-check tools. Interpreter installations such

@@ -6,17 +6,26 @@
 # See https://stonewall.sh or run `stonewall --help` for details              #
 ###############################################################################
 
+include:
+  - https://stonewall.sh/policies/base.yml
+  - https://stonewall.sh/policies/claude.yml
+  - https://stonewall.sh/policies/python.yml
+  - https://stonewall.sh/policies/snap.yml
+
 project:
   readonly:
-    - .git
+    - README.md
+    - SECURITY.md
+    - CNAME
+
 bin:
   allowed:
-    - make
-    - cowsay
-    - perl
+    - node
+    - sh
+    - bash
+
 expose:
   read:
-    - ~/.gitconfig
-include:
-  - policies/base.yml
-  - policies/claude.yml
+    - ~/.npm
+  write:
+    - ~/.cache

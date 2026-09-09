@@ -1,0 +1,41 @@
+# $schema: https://stonewall.sh/schema.json
+
+####################################################################################
+# This is an official stonewall.sh policy and should not be changed locally.       #
+# Please always review remote policies before applying them. Stonewall and its     #
+# policies come without warranty of any kind. See LICENSE for details.             #
+####################################################################################
+
+policy:
+  name: Base
+  url: https://stonewall.sh/policies/base.yml
+  description: >
+    Provides a safe, minimalistic base policy applicable to any project. It
+    intentionally does NOT include anything language-, framework- or agent-specific
+    rules, and no tools that write, delete, commit or run other programs.
+project:
+  readonly:
+    - .git
+  hidden:
+    - .env
+    - secrets
+bin:
+  allowed:
+    - cat
+    - cut
+    - diff
+    - dirname
+    - echo
+    - file
+    - grep
+    - head
+    - ls
+    - sort
+    - stat
+    - tail
+    - tr
+    - uniq
+    - wc
+expose:
+  write:
+    - /tmp

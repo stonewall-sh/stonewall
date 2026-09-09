@@ -1,14 +1,32 @@
 {{ define "main" }}
 <h1>Official Policies</h1>
-<p class="lead">Ready-made rules you include in your project's <code>.stonewall.yml</code>. Included policies apply first, your own rules last.</p>
-<p>Add one with <code>stonewall policy include &lt;url&gt;</code>, or run <code>stonewall policy pick</code> to tick the ones you need from this list. Remote policies are reviewed once and cached; <code>stonewall policy update</code> fetches new versions.</p>
-<p class="notice">These are official stonewall.sh policies and should not be changed locally. Always review remote policies before applying them. Stonewall and its policies come without warranty of any kind.</p>
-<p>Every policy file follows the <a href="/schema/">policy schema</a>. <code>stonewall policy validate &lt;url|path&gt;</code> checks a file or URL against it.</p>
-{{ range .Pages }}
-<section class="policy">
-  <h2><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
-  {{ with .Params.meta.description }}<p>{{ . }}</p>{{ end }}
-  {{ with .Params.meta.url }}<pre><code>stonewall policy include {{ . }}</code></pre>{{ end }}
+<p class="lead">
+  Ready-made rules you include in your project's <code>.stonewall.yml</code>. Included policies apply first, your own
+  rules last.
+  Add one with <code>stonewall policy include &lt;url&gt;</code>, or run <code>stonewall policy pick</code> to tick the
+  ones you need from this list. Remote policies are reviewed once and cached; <code>stonewall policy update</code>
+  fetches new versions.
+</p>
+<p><i>
+  These are official stonewall.sh policies and should not be changed locally. Always review remote policies before
+  applying them. Stonewall and its policies come without warranty of any kind.
+</i></p>
+{{ partial "filter.html" "Filter policies…" }}
+{{/* Pages carry weight = tier + 1 (see content/policies/_content.gotmpl); tier names match the schema's policy.tier description. */}}
+{{ $tiers := dict "1" "Operating System and Environment" "2" "Basic Tools" "3" "Programming Languages & Frameworks" "4" "Agents" }}
+{{ range .Pages.GroupBy "Weight" }}
+<section class="tier">
+  <h2>{{ index $tiers (string .Key) | default "Other" }}</h2>
+  <div class="cards">
+    {{ range .Pages }}
+    <a class="card" href="{{ .RelPermalink }}"
+       data-search="{{ lower .Params.meta.name }} {{ delimit (.Params.meta.tags | default slice) " " }}">
+    <h3>{{ .Params.meta.name }}</h3>
+    {{ with .Params.meta.description }}<p class="desc">{{ . }}</p>{{ end }}
+    {{ with .Params.meta.tags }}<p class="tags">{{ range . }}<code>{{ . }}</code> {{ end }}</p>{{ end }}
+    </a>
+    {{ end }}
+  </div>
 </section>
 {{ end }}
 {{ end }}
