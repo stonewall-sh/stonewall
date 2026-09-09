@@ -9,9 +9,9 @@
 {{ $isPolicy := .Params.meta }}
 {{ $is404 := eq .RelPermalink "/404.html" }}
 {{ $title := .Title }}
-{{ if $is404 }}{{ $title = "Not found · stonewall.sh" }}{{ else if not .IsHome }}{{ $title = printf "%s · stonewall.sh" .Title }}{{ end }}
+{{ if $is404 }}{{ $title = "Not found · stonewall.sh" }}{{ else if and (eq .Section "agents") (not .IsSection) }}{{ $title = printf "Stonewall for %s · stonewall.sh" .Title }}{{ else if not .IsHome }}{{ $title = printf "%s · stonewall.sh" .Title }}{{ end }}
 {{ $description := .Description }}
-{{ if and (not $description) (eq .Section "agents") (not .IsSection) }}{{ $description = printf "How to run %s inside the stonewall sandbox." .Title }}{{ end }}
+{{ if and (not $description) (eq .Section "agents") (not .IsSection) }}{{ $description = printf "Stonewall is a local, kernel-enforced sandbox for AI coding agents like %s, drastically limiting access to tools, paths and project files, based on strictly enforced policies, not prompts." .Title }}{{ end }}
 {{ $description = strings.TrimSpace ($description | default site.Params.description) }}
 {{ $image := absURL site.Params.ogImage }}
 
