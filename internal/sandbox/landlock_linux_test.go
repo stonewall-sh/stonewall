@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"golang.org/x/sys/unix"
@@ -33,6 +34,12 @@ func TestApplyLandlock(t *testing.T) {
 }
 
 func testApplyLandlockChild(t *testing.T) {
+	// landlock_restrict_self is per-thread. Without this, the goroutine can migrate to a different
+	// OS thread between applyLandlock and the exec calls below, so the restricted thread's rules
+	// never see the fork. restrictExec (the production caller) does this; mirror it here so the
+	// self-check exercises the same guarantee.
+	runtime.LockOSThread()
+
 	dir := t.TempDir()
 	allowed := writeExecutable(t, dir, "allowed")
 	denied := writeExecutable(t, dir, "denied")
@@ -43,12 +50,14 @@ func testApplyLandlockChild(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	t.Logf("tid before applyLandlock: %d", unix.Gettid())
 	ok, warning := applyLandlock([]string{allowed, sh})
+	t.Logf("tid after applyLandlock: %d", unix.Gettid())
 	if !ok {
 		t.Fatalf("applyLandlock reported not applied: %s", warning)
 	}
 	if err := exec.Command(allowed).Run(); err != nil {
-		t.Errorf("allowed path denied: %v", err)
+		t.Errorf("allowed path denied: %v (tid %d)", err, unix.Gettid())
 	}
 	if err := exec.Command(denied).Run(); err == nil {
 		t.Error("denied path was allowed to exec")
