@@ -54,6 +54,7 @@ check "read-only exposed path outside HOME is not writable" 1 "echo x >> $TMP/ro
 check "git is on PATH"               0 'command -v git'
 check "cached remote policy is applied" 0 'command -v cat'
 check "curl is not on PATH"          1 'command -v curl'
+check "absolute-path curl bypasses PATH but not the kernel" 1 '/usr/bin/curl --version'
 check "PATH is only the bin dir"     0 'case "$PATH" in */stonewall-bin-*) [ "${PATH#*:}" = "$PATH" ];; *) false;; esac'
 check "stonewall binary is unreadable" 1 "[ -s $BIN ]"
 check "stonewall binary cannot run"    1 "$BIN --help"
