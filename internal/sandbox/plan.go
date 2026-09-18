@@ -134,8 +134,8 @@ func Build(pol policy.Policy, project, cwd string, readonlyFiles []string, agent
 			// what's already allowed, since PATH and the kernel exec allow-list both still gate X.
 			if _, ok := p.Bins["env"]; !ok {
 				if path, err := exec.LookPath("env"); err == nil {
-					if real, err := realpath(path); err == nil {
-						p.Bins["env"] = real
+					if resolved, err := realpath(path); err == nil {
+						p.Bins["env"] = resolved
 					}
 				}
 			}
@@ -145,8 +145,8 @@ func Build(pol policy.Policy, project, cwd string, readonlyFiles []string, agent
 		} else if abs := absoluteInterpreter(p.Bins[name]); abs != "" {
 			// #!/usr/bin/perl-style scripts used to run regardless of bin.allowed, since absolute exec
 			// bypassed PATH restriction; now the kernel allow-list gates them too, so warn the same way.
-			real, err := realpath(abs)
-			if err != nil || !slices.Contains(slices.Collect(maps.Values(p.Bins)), real) {
+			resolved, err := realpath(abs)
+			if err != nil || !slices.Contains(slices.Collect(maps.Values(p.Bins)), resolved) {
 				p.Warnings = append(p.Warnings, fmt.Sprintf("%s needs %s, which is not in bin.allowed", name, abs))
 			}
 		}

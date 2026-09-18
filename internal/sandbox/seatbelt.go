@@ -14,8 +14,8 @@ var evalSymlinks = filepath.EvalSymlinks
 // the admin-configurable selector /var/select/sh (default /bin/bash). Falls back to /bin/bash
 // pre-Catalina, where that selector doesn't exist.
 func shVariant() string {
-	if real, err := evalSymlinks("/var/select/sh"); err == nil {
-		return real
+	if resolved, err := evalSymlinks("/var/select/sh"); err == nil {
+		return resolved
 	}
 	return "/bin/bash"
 }
