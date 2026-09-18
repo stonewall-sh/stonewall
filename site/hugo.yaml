@@ -35,8 +35,8 @@ module:
     - {source: ../internal/policy/schema.json, target: static/schema.json}   # raw, served as it is
     - {source: ../internal/policy/schema.json, target: assets/schema.json}   # rendered by layouts/schema.html
     - {source: ../CNAME,         target: static/CNAME}
-    - {source: ../robots.txt,    target: static/robots.txt}
     - {source: ../LICENSE,       target: content/license.md}
+    - {source: static,           target: static}
     - {source: content,          target: content}
     - {source: layouts,          target: layouts}
 mediaTypes:

@@ -2,13 +2,28 @@ package sandbox
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 )
+
+// evalSymlinks is swappable so tests can fix macOS's shell-selector resolution without touching the
+// real filesystem, mirroring bwrap.go's readlink.
+var evalSymlinks = filepath.EvalSymlinks
+
+// shVariant returns the real binary /bin/sh execs as. /bin/sh isn't a symlink — the OS re-execs it via
+// the admin-configurable selector /var/select/sh (default /bin/bash). Falls back to /bin/bash
+// pre-Catalina, where that selector doesn't exist.
+func shVariant() string {
+	if resolved, err := evalSymlinks("/var/select/sh"); err == nil {
+		return resolved
+	}
+	return "/bin/bash"
+}
 
 // SeatbeltProfile renders the plan as a macOS sandbox profile. Later rules override earlier ones.
 func SeatbeltProfile(p *Plan) string {
 	var b strings.Builder
-	b.WriteString("(version 1)\n(allow default)\n")
+	b.WriteString("(version 1)\n(allow default)\n(deny process-exec*)\n")
 	fmt.Fprintf(&b, "(deny file-read* file-write* (subpath %s))\n", sbpl(p.Home))
 	fmt.Fprintf(&b, "(allow file-read-metadata (literal %s))\n", sbpl(p.Home)) // stat only, no listing: node and bash resolve exposed paths through $HOME
 	fmt.Fprintf(&b, "(allow file-read* file-write* (subpath %s))\n", sbpl(p.Project))
@@ -31,6 +46,10 @@ func SeatbeltProfile(p *Plan) string {
 	for _, path := range sortedValues(p.Bins) {
 		if strings.HasPrefix(path, p.Home+"/") { // binaries under $HOME, otherwise denied above
 			fmt.Fprintf(&b, "(allow file-read* (subpath %s))\n", sbpl(path))
+		}
+		fmt.Fprintf(&b, "(allow process-exec (literal %s))\n", sbpl(path))
+		if path == "/bin/sh" {
+			fmt.Fprintf(&b, "(allow process-exec (literal %s))\n", sbpl(shVariant()))
 		}
 	}
 	fmt.Fprintf(&b, "(allow file-read* (subpath %s))\n", sbpl(p.BinDir))

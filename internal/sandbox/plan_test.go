@@ -47,35 +47,35 @@ func TestBuild(t *testing.T) {
 	}
 	defer os.RemoveAll(p.BinDir)
 
-	real := func(s string) string { r, _ := filepath.EvalSymlinks(s); return r }
+	resolved := func(s string) string { r, _ := filepath.EvalSymlinks(s); return r }
 	eq := func(name string, got, want []string) {
 		if strings.Join(got, ",") != strings.Join(want, ",") {
 			t.Errorf("%s: got %v want %v", name, got, want)
 		}
 	}
-	eq("Readonly", p.Readonly, []string{real(filepath.Join(proj, ".git")), real(filepath.Join(proj, policy.FileName)), real(filepath.Join(proj, "extra.yml"))})
-	outsideYml := real(filepath.Join(outside, "outside.yml"))
+	eq("Readonly", p.Readonly, []string{resolved(filepath.Join(proj, ".git")), resolved(filepath.Join(proj, policy.FileName)), resolved(filepath.Join(proj, "extra.yml"))})
+	outsideYml := resolved(filepath.Join(outside, "outside.yml"))
 	if slices.Contains(p.Readonly, outsideYml) {
 		t.Error("readonly file outside the project mounted into Readonly")
 	}
 	eq("ReadonlyFiles", p.ReadonlyFiles, []string{outsideYml})
-	eq("HiddenDirs", p.HiddenDirs, []string{real(filepath.Join(proj, "secrets"))})
+	eq("HiddenDirs", p.HiddenDirs, []string{resolved(filepath.Join(proj, "secrets"))})
 	self, _ := os.Executable()
 	self, _ = realpath(self)
-	eq("HiddenFiles", p.HiddenFiles, []string{real(filepath.Join(proj, ".env")), self})
-	eq("ExposeWrite", p.ExposeWrite, []string{real(filepath.Join(home, "exposed"))})
-	eq("ExposeRead", p.ExposeRead, []string{real(filepath.Join(home, "exposed-ro"))})
+	eq("HiddenFiles", p.HiddenFiles, []string{resolved(filepath.Join(proj, ".env")), self})
+	eq("ExposeWrite", p.ExposeWrite, []string{resolved(filepath.Join(home, "exposed"))})
+	eq("ExposeRead", p.ExposeRead, []string{resolved(filepath.Join(home, "exposed-ro"))})
 	// Verify escaping symlinks are skipped
-	if slices.Contains(p.Readonly, real(outside)) || slices.Contains(p.Readonly, real(filepath.Join(proj, "link"))) {
+	if slices.Contains(p.Readonly, resolved(outside)) || slices.Contains(p.Readonly, resolved(filepath.Join(proj, "link"))) {
 		t.Error("escape symlink in readonly")
 	}
-	if slices.Contains(p.HiddenDirs, real(outside)) || slices.Contains(p.HiddenDirs, real(filepath.Join(proj, "link"))) {
+	if slices.Contains(p.HiddenDirs, resolved(outside)) || slices.Contains(p.HiddenDirs, resolved(filepath.Join(proj, "link"))) {
 		t.Error("escape symlink in hiddendirs")
 	}
-	if slices.Contains(p.HiddenFiles, real(outside)) || slices.Contains(p.HiddenFiles, real(filepath.Join(proj, "link"))) {
+	if slices.Contains(p.HiddenFiles, resolved(outside)) || slices.Contains(p.HiddenFiles, resolved(filepath.Join(proj, "link"))) {
 		t.Error("escape symlink in hiddenfiles")
 	}
-	if p.Project != real(proj) || p.Cwd != real(filepath.Join(proj, "src")) || p.Home != real(home) {
+	if p.Project != resolved(proj) || p.Cwd != resolved(filepath.Join(proj, "src")) || p.Home != resolved(home) {
 		t.Errorf("project/cwd/home: %s %s %s", p.Project, p.Cwd, p.Home)
 	}
 	if _, ok := p.Bins["definitely-not-a-binary"]; ok {
@@ -129,6 +129,31 @@ func TestInterpreter(t *testing.T) {
 	}
 }
 
+func TestAbsoluteInterpreter(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, content string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(content), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	cases := []struct {
+		name    string
+		content string
+		want    string
+	}{
+		{"absolute", "#!/usr/bin/perl\nprint 1;\n", "/usr/bin/perl"},
+		{"env", "#!/usr/bin/env perl\nprint 1;\n", ""},
+		{"binary", "\x7fELF\x02\x01\x01\x00binarydata", ""},
+	}
+	for _, c := range cases {
+		if got := absoluteInterpreter(write(c.name, c.content)); got != c.want {
+			t.Errorf("absoluteInterpreter(%s): got %q want %q", c.name, got, c.want)
+		}
+	}
+}
+
 func TestBuildWarnings(t *testing.T) {
 	tmp := t.TempDir()
 	home := filepath.Join(tmp, "home")
@@ -139,9 +164,10 @@ func TestBuildWarnings(t *testing.T) {
 
 	dir := t.TempDir()
 	scripts := map[string]string{
-		"envscript": "#!/usr/bin/env perl\nprint 1;\n",
-		"envflags":  "#!/usr/bin/env -S python3 -u\n",
-		"direct":    "#!/bin/sh\ntrue\n",
+		"envscript":     "#!/usr/bin/env perl\nprint 1;\n",
+		"envflags":      "#!/usr/bin/env -S python3 -u\n",
+		"direct":        "#!/bin/sh\ntrue\n",
+		"directmissing": "#!/nonexistent-interpreter-xyz\nexit\n",
 	}
 	for name, content := range scripts {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o755); err != nil {
@@ -150,15 +176,22 @@ func TestBuildWarnings(t *testing.T) {
 	}
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
-	pol := policy.Policy{Bin: policy.Bin{Allowed: []string{"sh", "envscript", "envflags", "direct"}}}
+	pol := policy.Policy{Bin: policy.Bin{Allowed: []string{"sh", "envscript", "envflags", "direct", "directmissing"}}}
 	p, err := Build(pol, tmp, tmp, nil, []string{"sh"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(p.BinDir)
-	want := []string{"envflags needs python3, which is not in bin.allowed", "envscript needs perl, which is not in bin.allowed"}
+	want := []string{
+		"directmissing needs /nonexistent-interpreter-xyz, which is not in bin.allowed",
+		"envflags needs python3, which is not in bin.allowed",
+		"envscript needs perl, which is not in bin.allowed",
+	}
 	if strings.Join(p.Warnings, ",") != strings.Join(want, ",") {
 		t.Errorf("Warnings: got %v want %v", p.Warnings, want)
+	}
+	if _, ok := p.Bins["env"]; !ok {
+		t.Error("env not auto-resolved into Bins despite an #!/usr/bin/env script, without being in bin.allowed")
 	}
 
 	pol2 := policy.Policy{Bin: policy.Bin{Allowed: []string{"sh", "envscript", "envflags", "direct", "perl", "python3"}}}

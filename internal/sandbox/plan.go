@@ -130,8 +130,24 @@ func Build(pol policy.Policy, project, cwd string, readonlyFiles []string, agent
 	}
 	for _, name := range slices.Sorted(maps.Keys(p.Bins)) {
 		if interp := interpreter(p.Bins[name]); interp != "" {
+			// #!/usr/bin/env X needs env itself exec-able, same as it needs X; grants nothing beyond
+			// what's already allowed, since PATH and the kernel exec allow-list both still gate X.
+			if _, ok := p.Bins["env"]; !ok {
+				if path, err := exec.LookPath("env"); err == nil {
+					if resolved, err := realpath(path); err == nil {
+						p.Bins["env"] = resolved
+					}
+				}
+			}
 			if _, ok := p.Bins[interp]; !ok {
 				p.Warnings = append(p.Warnings, fmt.Sprintf("%s needs %s, which is not in bin.allowed", name, interp))
+			}
+		} else if abs := absoluteInterpreter(p.Bins[name]); abs != "" {
+			// #!/usr/bin/perl-style scripts used to run regardless of bin.allowed, since absolute exec
+			// bypassed PATH restriction; now the kernel allow-list gates them too, so warn the same way.
+			resolved, err := realpath(abs)
+			if err != nil || !slices.Contains(slices.Collect(maps.Values(p.Bins)), resolved) {
+				p.Warnings = append(p.Warnings, fmt.Sprintf("%s needs %s, which is not in bin.allowed", name, abs))
 			}
 		}
 	}
@@ -158,21 +174,27 @@ func MakeBinDir(bins map[string]string) (string, error) {
 	return realpath(dir)
 }
 
-// interpreter returns the program a script's "#!/usr/bin/env X" line looks up on PATH.
-// It returns "" for binaries and for scripts that name their interpreter by absolute path.
-func interpreter(path string) string {
+// shebangFields returns the whitespace-split fields after "#!" in a script's first line, or nil for
+// binaries and scripts with no shebang.
+func shebangFields(path string) []string {
 	f, err := os.Open(path)
 	if err != nil {
-		return ""
+		return nil
 	}
 	defer f.Close()
 	buf := make([]byte, 256)
 	n, _ := f.Read(buf)
 	line, _, _ := strings.Cut(string(buf[:n]), "\n")
 	if !strings.HasPrefix(line, "#!") {
-		return ""
+		return nil
 	}
-	fields := strings.Fields(line[2:])
+	return strings.Fields(line[2:])
+}
+
+// interpreter returns the program a script's "#!/usr/bin/env X" line looks up on PATH.
+// It returns "" for binaries and for scripts that name their interpreter by absolute path.
+func interpreter(path string) string {
+	fields := shebangFields(path)
 	if len(fields) == 0 || filepath.Base(fields[0]) != "env" {
 		return ""
 	}
@@ -182,6 +204,17 @@ func interpreter(path string) string {
 		}
 	}
 	return ""
+}
+
+// absoluteInterpreter returns the interpreter path for a script naming it directly, e.g.
+// "#!/usr/bin/perl" — the counterpart interpreter() doesn't cover, since that's "#!/usr/bin/env X"
+// indirection only. Returns "" for binaries, env-style scripts, and scripts with no shebang.
+func absoluteInterpreter(path string) string {
+	fields := shebangFields(path)
+	if len(fields) == 0 || filepath.Base(fields[0]) == "env" {
+		return ""
+	}
+	return fields[0]
 }
 
 func realpath(p string) (string, error) {

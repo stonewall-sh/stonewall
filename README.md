@@ -23,55 +23,20 @@ Available on:
 
 ## 🧱 What it is
 
-Stonewall is a local, kernel-enforced **sandbox** for AI **coding agents**, drastically limiting access to tools, paths 
-and project files, based on strictly **enforced policies**, not prompts.
+> AI, like everything else, can and should not “secure itself”. Most agentic security harnesses are a joke. Likewise, 
+> prompts, plugins, and markdown files don’t provide real security. They are best-effort recommendations that agents 
+> can hallucinate about, or even ignore in the worst case.
 
-```
-stonewall claude
-```
+Stonewall is a local, kernel-enforced **sandbox** for AI **coding agents**. It enforces access to files and tools
+independently of agent prompts or configuration, based on **configurable policies**:
 
-Instead of running coding agents as the current user with all its power, stonewall runs the agent in a sandbox with
-kernel-enforced rules. Coding agents today rely on permission prompts and their own restraint. This is not another
-prompt, skill or plugin: It's a literal stone wall between the agent and everything that should not be accessed by it.
-
-In highly configurable policies, human maintainers can configure what is accessible by the AI agent beyond blindly
-trusting an `AGENTS.md` file or system prompts:
-
-### Tools and Binaries
-
-Stonewall restricts access to available binaries (including `$PATH`) to whitelisted tools. Stop worrying about your
-agent workaround-calling a delicate tool like `make`, `git`, `python`, `rm`, etc. They virtually don't exist within the
-sandbox.
-
-### Project Directories and Files
-
-Inside the project, all files are accessible by default. Stonewall can make project files / dirs read-only or even
-completely hide them from the agent. E.g. hiding `.env` to not expose keys, or making `.git` read-only, to prevent
-destructive git operations.
-
-### Files outside the Project
-
-By default, no files outside the project root are visible to the agent. You can expose specific directories or files
-though, e.g. `~/.ssh`, `~/.aws`, or `~/.claude`. System directories stay readable so the allowed tools keep working.
-
-*Agents can never access the stonewall CLI or policy files.*
-
-## 📦 Install
-
-```
-curl -fsSL https://stonewall.sh/install.sh | sh
-```
-
-Installs the latest release to `/usr/local/bin` (override with `STONEWALL_INSTALL_DIR`) and, on Linux, `bubblewrap`
-with your package manager. The script is
-[short](https://github.com/stonewall-sh/stonewall/blob/main/install.sh), read it first.
-
-You can also download the binary for your platform from the
-[latest release](https://github.com/stonewall-sh/stonewall/releases/latest), or build from source with Go 1.27 or newer:
-
-```
-go install github.com/stonewall-sh/stonewall/v2@latest
-```
+- Whitelist tools and binaries that can be used
+- Hide or lock project files like `.git` or `README.md`
+- Block files outside the project by default
+- Expose host paths, i.e. `~/.cache` explicitly
+- Keep stonewall policies inaccessible to agents, to mitigate privilege escalation
+- Environment variable restriction *(planned)*
+- Network isolation *(planned)*
 
 ## ⚡ Usage
 
@@ -86,12 +51,28 @@ agent. Everything after the agent name is passed to it untouched. Usage is as si
 stonewall claude
 ```
 
+## 📦 Installation
+
+Simple install the latest release for your platform using the installer:
+
+```
+curl -fsSL https://stonewall.sh/install.sh | sh
+```
+
+*The script is [short](https://github.com/stonewall-sh/stonewall/blob/main/install.sh), read it first.*
+
+Alternatively, download the binary for your platform from the
+[latest release](https://github.com/stonewall-sh/stonewall/releases/latest), or build from source with Go 1.27 or newer:
+
+```
+go install github.com/stonewall-sh/stonewall/v2@latest
+```
+
 ## 📜 Policy
 
 Stonewall works based on a policy called `.stonewall.yml`, at your project root. It is automatically created on first
-usage and contains rules for binaries, paths and project directories being accessible from within the sandbox.
-
-See the following `.stonewall.yml` example:
+run and contains rules for binaries, paths and project directories being accessible from within the sandbox. See the 
+following example:
 
 ```yaml
 include:
@@ -151,6 +132,7 @@ Inside the sandbox:
 | `expose.read` entries        | read-only bind                           | reads allowed, writes denied    |
 | `/usr`, `/etc`, `/opt`, …    | read-only                                | unchanged, read-write           |
 | `PATH`                       | a directory of allowlisted programs only | the same directory              |
+| Executing binaries           | kernel-denied unless in `bin.allowed`    | kernel-denied unless in `bin.allowed` |
 | Network                      | shared with the host                     | shared with the host            |
 
 Linux makes hidden content vanish. macOS still lists the names but denies every access. Both stop the agent from reading
@@ -159,8 +141,8 @@ the secret.
 Linux builds the sandbox from nothing and mounts in only what is listed. macOS starts from the full system and denies
 your home directory, so locations such as `/opt/homebrew` stay writable there.
 
-`PATH` restriction is defence in depth, not isolation. Anything reachable by absolute path still runs, and an
-allowlisted interpreter such as `bash` or `python` can run anything.
+Exec itself is kernel-enforced, not just `PATH`: a binary outside `bin.allowed` is denied even by absolute path. An
+allowlisted interpreter such as `bash` or `python` can still run anything given to it, though.
 
 **Known limitations**
 
@@ -171,7 +153,7 @@ allowlisted interpreter such as `bash` or `python` can run anything.
 - Linux: the agent keeps the controlling terminal so job control works. On kernels before 6.2 that leaves `TIOCSTI`
   input injection open.
 - Tools that rewrite an `expose.read` file, such as `git config --global`, fail.
-- Not yet: network isolation, seccomp, process-exec allowlisting on macOS, hiding file names on macOS.
+- Not yet: network isolation, hiding file names on macOS.
 
 ## 🛠️ Development
 
