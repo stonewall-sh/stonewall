@@ -129,6 +129,31 @@ func TestInterpreter(t *testing.T) {
 	}
 }
 
+func TestAbsoluteInterpreter(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, content string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(content), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	cases := []struct {
+		name    string
+		content string
+		want    string
+	}{
+		{"absolute", "#!/usr/bin/perl\nprint 1;\n", "/usr/bin/perl"},
+		{"env", "#!/usr/bin/env perl\nprint 1;\n", ""},
+		{"binary", "\x7fELF\x02\x01\x01\x00binarydata", ""},
+	}
+	for _, c := range cases {
+		if got := absoluteInterpreter(write(c.name, c.content)); got != c.want {
+			t.Errorf("absoluteInterpreter(%s): got %q want %q", c.name, got, c.want)
+		}
+	}
+}
+
 func TestBuildWarnings(t *testing.T) {
 	tmp := t.TempDir()
 	home := filepath.Join(tmp, "home")
@@ -139,9 +164,10 @@ func TestBuildWarnings(t *testing.T) {
 
 	dir := t.TempDir()
 	scripts := map[string]string{
-		"envscript": "#!/usr/bin/env perl\nprint 1;\n",
-		"envflags":  "#!/usr/bin/env -S python3 -u\n",
-		"direct":    "#!/bin/sh\ntrue\n",
+		"envscript":     "#!/usr/bin/env perl\nprint 1;\n",
+		"envflags":      "#!/usr/bin/env -S python3 -u\n",
+		"direct":        "#!/bin/sh\ntrue\n",
+		"directmissing": "#!/nonexistent-interpreter-xyz\nexit\n",
 	}
 	for name, content := range scripts {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o755); err != nil {
@@ -150,15 +176,22 @@ func TestBuildWarnings(t *testing.T) {
 	}
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
-	pol := policy.Policy{Bin: policy.Bin{Allowed: []string{"sh", "envscript", "envflags", "direct"}}}
+	pol := policy.Policy{Bin: policy.Bin{Allowed: []string{"sh", "envscript", "envflags", "direct", "directmissing"}}}
 	p, err := Build(pol, tmp, tmp, nil, []string{"sh"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(p.BinDir)
-	want := []string{"envflags needs python3, which is not in bin.allowed", "envscript needs perl, which is not in bin.allowed"}
+	want := []string{
+		"directmissing needs /nonexistent-interpreter-xyz, which is not in bin.allowed",
+		"envflags needs python3, which is not in bin.allowed",
+		"envscript needs perl, which is not in bin.allowed",
+	}
 	if strings.Join(p.Warnings, ",") != strings.Join(want, ",") {
 		t.Errorf("Warnings: got %v want %v", p.Warnings, want)
+	}
+	if _, ok := p.Bins["env"]; !ok {
+		t.Error("env not auto-resolved into Bins despite an #!/usr/bin/env script, without being in bin.allowed")
 	}
 
 	pol2 := policy.Policy{Bin: policy.Bin{Allowed: []string{"sh", "envscript", "envflags", "direct", "perl", "python3"}}}
