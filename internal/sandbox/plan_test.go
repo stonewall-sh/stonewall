@@ -47,35 +47,35 @@ func TestBuild(t *testing.T) {
 	}
 	defer os.RemoveAll(p.BinDir)
 
-	real := func(s string) string { r, _ := filepath.EvalSymlinks(s); return r }
+	resolved := func(s string) string { r, _ := filepath.EvalSymlinks(s); return r }
 	eq := func(name string, got, want []string) {
 		if strings.Join(got, ",") != strings.Join(want, ",") {
 			t.Errorf("%s: got %v want %v", name, got, want)
 		}
 	}
-	eq("Readonly", p.Readonly, []string{real(filepath.Join(proj, ".git")), real(filepath.Join(proj, policy.FileName)), real(filepath.Join(proj, "extra.yml"))})
-	outsideYml := real(filepath.Join(outside, "outside.yml"))
+	eq("Readonly", p.Readonly, []string{resolved(filepath.Join(proj, ".git")), resolved(filepath.Join(proj, policy.FileName)), resolved(filepath.Join(proj, "extra.yml"))})
+	outsideYml := resolved(filepath.Join(outside, "outside.yml"))
 	if slices.Contains(p.Readonly, outsideYml) {
 		t.Error("readonly file outside the project mounted into Readonly")
 	}
 	eq("ReadonlyFiles", p.ReadonlyFiles, []string{outsideYml})
-	eq("HiddenDirs", p.HiddenDirs, []string{real(filepath.Join(proj, "secrets"))})
+	eq("HiddenDirs", p.HiddenDirs, []string{resolved(filepath.Join(proj, "secrets"))})
 	self, _ := os.Executable()
 	self, _ = realpath(self)
-	eq("HiddenFiles", p.HiddenFiles, []string{real(filepath.Join(proj, ".env")), self})
-	eq("ExposeWrite", p.ExposeWrite, []string{real(filepath.Join(home, "exposed"))})
-	eq("ExposeRead", p.ExposeRead, []string{real(filepath.Join(home, "exposed-ro"))})
+	eq("HiddenFiles", p.HiddenFiles, []string{resolved(filepath.Join(proj, ".env")), self})
+	eq("ExposeWrite", p.ExposeWrite, []string{resolved(filepath.Join(home, "exposed"))})
+	eq("ExposeRead", p.ExposeRead, []string{resolved(filepath.Join(home, "exposed-ro"))})
 	// Verify escaping symlinks are skipped
-	if slices.Contains(p.Readonly, real(outside)) || slices.Contains(p.Readonly, real(filepath.Join(proj, "link"))) {
+	if slices.Contains(p.Readonly, resolved(outside)) || slices.Contains(p.Readonly, resolved(filepath.Join(proj, "link"))) {
 		t.Error("escape symlink in readonly")
 	}
-	if slices.Contains(p.HiddenDirs, real(outside)) || slices.Contains(p.HiddenDirs, real(filepath.Join(proj, "link"))) {
+	if slices.Contains(p.HiddenDirs, resolved(outside)) || slices.Contains(p.HiddenDirs, resolved(filepath.Join(proj, "link"))) {
 		t.Error("escape symlink in hiddendirs")
 	}
-	if slices.Contains(p.HiddenFiles, real(outside)) || slices.Contains(p.HiddenFiles, real(filepath.Join(proj, "link"))) {
+	if slices.Contains(p.HiddenFiles, resolved(outside)) || slices.Contains(p.HiddenFiles, resolved(filepath.Join(proj, "link"))) {
 		t.Error("escape symlink in hiddenfiles")
 	}
-	if p.Project != real(proj) || p.Cwd != real(filepath.Join(proj, "src")) || p.Home != real(home) {
+	if p.Project != resolved(proj) || p.Cwd != resolved(filepath.Join(proj, "src")) || p.Home != resolved(home) {
 		t.Errorf("project/cwd/home: %s %s %s", p.Project, p.Cwd, p.Home)
 	}
 	if _, ok := p.Bins["definitely-not-a-binary"]; ok {
