@@ -52,6 +52,9 @@ func SeatbeltProfile(p *Plan) string {
 			fmt.Fprintf(&b, "(allow process-exec (literal %s))\n", sbpl(shVariant()))
 		}
 	}
+	if len(p.Shims) > 0 { // every BinDir alias execs through this copy of stonewall itself; see shim.go
+		fmt.Fprintf(&b, "(allow process-exec (literal %s))\n", sbpl(filepath.Join(p.BinDir, shimBinaryName)))
+	}
 	fmt.Fprintf(&b, "(allow file-read* (subpath %s))\n", sbpl(p.BinDir))
 	return b.String()
 }

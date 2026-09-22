@@ -84,8 +84,14 @@ func TestBuild(t *testing.T) {
 	if p.Argv[0] != filepath.Join(p.BinDir, "sh") || p.Argv[1] != "-c" || p.Argv[2] != "true" {
 		t.Errorf("argv: %v", p.Argv)
 	}
-	if target, err := os.Readlink(p.Argv[0]); err != nil || target != p.Bins["sh"] {
-		t.Errorf("symlink target %q, err %v, want %q", target, err, p.Bins["sh"])
+	// Every BinDir entry, including the agent's own, execs through the self-shim now — never a
+	// direct symlink to the real binary — so the same kernel "#!" restriction that blocks scripts
+	// can never bite a plain binary either. See shim.go.
+	if target, err := os.Readlink(p.Argv[0]); err != nil || target != filepath.Join(p.BinDir, shimBinaryName) {
+		t.Errorf("symlink target %q, err %v, want the self-shim", target, err)
+	}
+	if got := p.Shims["sh"]; len(got.Argv) != 1 || got.Argv[0] != p.Bins["sh"] {
+		t.Errorf("Shims[sh] = %+v, want Argv [%q]", got, p.Bins["sh"])
 	}
 	if !slices.Contains(p.Env, "PATH="+p.BinDir) {
 		t.Errorf("PATH not set to bin dir: %v", p.Env)
@@ -174,6 +180,13 @@ func TestBuildWarnings(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	// Fake perl/python3 on PATH so interpreter resolution is deterministic regardless of what's
+	// actually installed on the host running this test.
+	for _, name := range []string{"perl", "python3"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("#!/bin/sh\ntrue\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
 	pol := policy.Policy{Bin: policy.Bin{Allowed: []string{"sh", "envscript", "envflags", "direct", "directmissing"}}}
@@ -182,16 +195,25 @@ func TestBuildWarnings(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(p.BinDir)
+	// Unchanged trigger, on both platforms: a script's interpreter must be separately in bin.allowed,
+	// stonewall never adds it on its own. Wording now also spells out that allowing it also lets the
+	// agent run it directly, since kernel-level exec restriction cannot scope it to the script alone.
 	want := []string{
-		"directmissing needs /nonexistent-interpreter-xyz, which is not in bin.allowed",
-		"envflags needs python3, which is not in bin.allowed",
-		"envscript needs perl, which is not in bin.allowed",
+		"directmissing needs /nonexistent-interpreter-xyz, which is not in bin.allowed — allowing it also lets the agent run it directly",
+		"envflags needs python3, which is not in bin.allowed — allowing it also lets the agent run it directly",
+		"envscript needs perl, which is not in bin.allowed — allowing it also lets the agent run it directly",
 	}
 	if strings.Join(p.Warnings, ",") != strings.Join(want, ",") {
 		t.Errorf("Warnings: got %v want %v", p.Warnings, want)
 	}
 	if _, ok := p.Bins["env"]; !ok {
 		t.Error("env not auto-resolved into Bins despite an #!/usr/bin/env script, without being in bin.allowed")
+	}
+	if _, ok := p.Bins["perl"]; ok {
+		t.Error("perl auto-added to Bins despite not being in bin.allowed")
+	}
+	if _, ok := p.Bins["python3"]; ok {
+		t.Error("python3 auto-added to Bins despite not being in bin.allowed")
 	}
 
 	pol2 := policy.Policy{Bin: policy.Bin{Allowed: []string{"sh", "envscript", "envflags", "direct", "perl", "python3"}}}
@@ -200,6 +222,14 @@ func TestBuildWarnings(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(p2.BinDir)
+	// Once the interpreter is also explicitly allowed, the script just works, via the self-shim —
+	// same on every platform.
+	if target, err := os.Readlink(filepath.Join(p2.BinDir, "envscript")); err != nil || target != filepath.Join(p2.BinDir, shimBinaryName) {
+		t.Errorf("envscript symlink = %q, err %v, want the self-shim", target, err)
+	}
+	if got := p2.Shims["envscript"]; len(got.Argv) != 2 || got.Argv[0] != p2.Bins["perl"] || got.Argv[1] != p2.Bins["envscript"] {
+		t.Errorf("Shims[envscript] = %+v, want Argv [%q %q]", got, p2.Bins["perl"], p2.Bins["envscript"])
+	}
 	if len(p2.Warnings) != 0 {
 		t.Errorf("Warnings with perl/python3 allowed: got %v want none", p2.Warnings)
 	}

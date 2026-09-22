@@ -440,6 +440,7 @@ func validatePolicy(ref string) error {
 }
 
 func main() {
+	sandbox.ExecShim()
 	out = newUI(os.Stderr, false)
 	cmd := newRootCmd()
 	if err := cmd.Execute(); err != nil {

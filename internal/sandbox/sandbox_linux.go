@@ -5,6 +5,7 @@ package sandbox
 import (
 	"errors"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 )
 
@@ -24,7 +25,11 @@ func (linuxSandbox) Command(plan *Plan) (*exec.Cmd, string, error) {
 }
 
 func (linuxSandbox) Start(cmd *exec.Cmd, plan *Plan) (warning string, err error) {
-	locked, warning := restrictExec(plan.Bins, cmd.Path)
+	var extra []string
+	if len(plan.Shims) > 0 { // each shim's interpreter is already in plan.Bins; only the self-copy needs adding
+		extra = append(extra, filepath.Join(plan.BinDir, shimBinaryName))
+	}
+	locked, warning := restrictExec(plan.Bins, cmd.Path, extra...)
 	if err = cmd.Start(); err != nil {
 		if locked {
 			runtime.UnlockOSThread()

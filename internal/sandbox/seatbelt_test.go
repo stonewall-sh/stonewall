@@ -28,6 +28,7 @@ func TestSeatbeltProfile(t *testing.T) {
 (allow process-exec (literal "/home/u/.nvm/node"))
 (allow process-exec (literal "/usr/bin/git"))
 (allow process-exec (literal "/usr/bin/sh"))
+(allow process-exec (literal "/tmp/stonewall-bin-1/.stonewall-shim"))
 (allow file-read* (subpath "/tmp/stonewall-bin-1"))
 `
 	if got != want {
