@@ -59,6 +59,24 @@ func testApplyLandlockChild(t *testing.T) {
 	}
 }
 
+// TestDynamicLoader checks the fix for a real CI failure: applyLandlock allowed /usr/bin/true but
+// exec of it still got denied, because a dynamically linked binary's own ELF interpreter (ld.so)
+// also needs to be exec-allowed, and nothing was granting that. /bin/sh is dynamically linked on
+// every mainstream Linux distro (including this test's CI runners), so it should report one.
+func TestDynamicLoader(t *testing.T) {
+	if got := dynamicLoader("/bin/sh"); got == "" {
+		t.Error("dynamicLoader(/bin/sh) = \"\", want a real ELF interpreter path")
+	}
+	if got := dynamicLoader("/nonexistent-xyz"); got != "" {
+		t.Errorf("dynamicLoader(missing) = %q, want \"\"", got)
+	}
+	dir := t.TempDir()
+	notELF := writeExecutable(t, dir, "not-elf") // a "#!/bin/sh" shebang script, not an ELF file
+	if got := dynamicLoader(notELF); got != "" {
+		t.Errorf("dynamicLoader(non-ELF) = %q, want \"\"", got)
+	}
+}
+
 func writeExecutable(t *testing.T, dir, name string) string {
 	p := filepath.Join(dir, name)
 	if err := os.WriteFile(p, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {

@@ -3,7 +3,10 @@
 package sandbox
 
 import (
+	"bytes"
+	"debug/elf"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"unsafe"
@@ -63,7 +66,20 @@ func applyLandlock(paths []string) (ok bool, warning string) {
 	}
 	defer unix.Close(rulesetFD)
 
+	// A dynamically linked binary's own exec also needs its ELF interpreter (ld.so) separately
+	// EXECUTE-allowed — the kernel opens and runs that as part of handling the execve, the same LSM
+	// check as the binary itself — so a path that's allowed but not runnable would otherwise still
+	// get denied with no indication why. Shared libraries the loader goes on to mmap need no such
+	// grant: Landlock here only governs EXECUTE, and mmap-for-read isn't gated by it.
+	allowed := make(map[string]bool, len(paths))
 	for _, path := range paths {
+		allowed[path] = true
+		if interp := dynamicLoader(path); interp != "" {
+			allowed[interp] = true
+		}
+	}
+
+	for path := range allowed {
 		fd, err := unix.Open(path, unix.O_PATH|unix.O_CLOEXEC, 0)
 		if err != nil {
 			return false, fmt.Sprintf("Landlock setup failed opening %s (%v); exec is only PATH-restricted, not kernel-enforced", path, err)
@@ -86,4 +102,25 @@ func applyLandlock(paths []string) (ok bool, warning string) {
 		return false, landlockUnavailable
 	}
 	return true, ""
+}
+
+// dynamicLoader returns the ELF interpreter (PT_INTERP) path a dynamically linked binary needs, or
+// "" for a statically linked binary or anything that isn't a readable ELF file.
+func dynamicLoader(path string) string {
+	f, err := elf.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+	for _, prog := range f.Progs {
+		if prog.Type != elf.PT_INTERP {
+			continue
+		}
+		data, err := io.ReadAll(prog.Open())
+		if err != nil {
+			return ""
+		}
+		return string(bytes.TrimRight(data, "\x00"))
+	}
+	return ""
 }
