@@ -317,13 +317,7 @@ func TestUpdate(t *testing.T) {
 	// 7a. A refused change keeps the reviewed version.
 	a.answer = false
 	a.titles = nil
-	res, err := l.Update(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res) != 1 || res[0].Status != Kept {
-		t.Fatalf("refused update: %+v", res)
-	}
+	updateOnce(t, l, path, Kept)
 	if readFile(t, cacheOf(body)) != body {
 		t.Error("refused update touched the cache")
 	}
@@ -331,13 +325,7 @@ func TestUpdate(t *testing.T) {
 	// 7b. An accepted change replaces the cache file and the lock entry.
 	a.answer = true
 	a.titles, a.bodies = nil, nil
-	res, err = l.Update(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res) != 1 || res[0].Status != Updated {
-		t.Fatalf("accepted update: %+v", res)
-	}
+	updateOnce(t, l, path, Updated)
 	if len(a.titles) != 1 || !strings.Contains(a.titles[0], "changed") {
 		t.Errorf("change prompt: %v", a.titles)
 	}
@@ -360,17 +348,24 @@ func TestUpdate(t *testing.T) {
 
 	// 7c. Unchanged content only refreshes the fetch time.
 	*now = epoch.Add(time.Hour)
-	res, err = l.Update(path)
-	if err != nil || len(res) != 1 || res[0].Status != "up to date" {
-		t.Fatalf("unchanged update: %+v %v", res, err)
-	}
+	updateOnce(t, l, path, UpToDate)
 
 	// 7d. An unreachable policy is a failure, never a silent skip.
 	srv.Close()
-	res, err = l.Update(path)
-	if err == nil || len(res) != 1 || res[0].Status != "failed" || res[0].Err == nil {
-		t.Fatalf("unreachable update: %+v %v", res, err)
+	if updateOnce(t, l, path, Failed).Err == nil {
+		t.Error("failed update without its error")
 	}
+}
+
+// updateOnce runs Update on a policy with one remote include and fails unless that include ends up as want,
+// with an error exactly when want is Failed.
+func updateOnce(t *testing.T, l Loader, path, want string) UpdateResult {
+	t.Helper()
+	res, err := l.Update(path)
+	if len(res) != 1 || res[0].Status != want || (err != nil) != (want == Failed) {
+		t.Fatalf("update: %+v %v, want %s", res, err, want)
+	}
+	return res[0]
 }
 
 func TestLoadLocalInclude(t *testing.T) {
@@ -556,7 +551,7 @@ func TestRemoveInclude(t *testing.T) {
 		}
 	}
 
-	// The last include takes the key with it, or the file would fail the schema.
+	// The last include takes the key with it: a bare include: is null and fails the schema.
 	path := filepath.Join(t.TempDir(), FileName)
 	if err := os.WriteFile(path, []byte("include:\n  - a.yml\nbin:\n  allowed: [cat]\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -566,6 +561,9 @@ func TestRemoveInclude(t *testing.T) {
 	}
 	if got := readFile(t, path); got != "bin:\n  allowed: [cat]\n" {
 		t.Errorf("remove last:\n%q", got)
+	}
+	if _, err := Load(path); err != nil {
+		t.Errorf("policy after removing the last include: %v", err)
 	}
 }
 

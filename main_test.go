@@ -321,14 +321,16 @@ func TestValidateCommand(t *testing.T) {
 func TestIncludeRemoveCommand(t *testing.T) {
 	dir := t.TempDir()
 	policyFile := filepath.Join(dir, ".stonewall.yml")
-	if err := os.WriteFile(policyFile, []byte("bin:\n  allowed: [cat]\n"), 0o644); err != nil {
+	if err := os.WriteFile(policyFile, []byte("include:\n  - policies/base.yml\nbin:\n  allowed: [cat]\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(filepath.Join(dir, "policies"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "policies", "extra.yml"), []byte("bin:\n  allowed: [git]\n"), 0o644); err != nil {
-		t.Fatal(err)
+	for _, name := range []string{"base.yml", "extra.yml"} {
+		if err := os.WriteFile(filepath.Join(dir, "policies", name), []byte("bin:\n  allowed: [git]\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := os.Mkdir(filepath.Join(dir, "sub"), 0o755); err != nil {
 		t.Fatal(err)
@@ -354,14 +356,14 @@ func TestIncludeRemoveCommand(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if want := []string{"policies/extra.yml"}; !reflect.DeepEqual(includes(), want) {
+	if want := []string{"policies/base.yml", "policies/extra.yml"}; !reflect.DeepEqual(includes(), want) {
 		t.Errorf("include list %v, want %v", includes(), want)
 	}
 	if err := run("remove", "../policies/extra.yml"); err != nil {
 		t.Fatal(err)
 	}
-	if len(includes()) != 0 {
-		t.Errorf("include list after remove: %v", includes())
+	if want := []string{"policies/base.yml"}; !reflect.DeepEqual(includes(), want) {
+		t.Errorf("include list after remove %v, want %v", includes(), want)
 	}
 	if err := run("remove", "../policies/extra.yml"); err == nil || !strings.Contains(err.Error(), "not in the include list") {
 		t.Errorf("removing an unlisted include: %v", err)
