@@ -86,15 +86,15 @@ func TestMakeBinDirScriptShim(t *testing.T) {
 // to exec directly — a shebang fixture here would pass on this session's non-Landlock test rig but
 // fail for real on Linux CI, so it would prove nothing about the case this test exists to cover.
 func TestMakeBinDirPlainShim(t *testing.T) {
-	real, err := exec.LookPath("echo")
+	echoPath, err := exec.LookPath("echo")
 	if err != nil {
 		t.Skip("no echo on PATH")
 	}
-	if real, err = realpath(real); err != nil {
+	if echoPath, err = realpath(echoPath); err != nil {
 		t.Fatal(err)
 	}
 
-	shims := map[string]shim{"tool": {Argv: []string{real}}}
+	shims := map[string]shim{"tool": {Argv: []string{echoPath}}}
 	binDir, err := MakeBinDir(shims)
 	if err != nil {
 		t.Fatal(err)

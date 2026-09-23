@@ -109,15 +109,17 @@ func TestBuild(t *testing.T) {
 	}
 }
 
+// writeFixture writes content to dir/name and returns its path.
+func writeFixture(t *testing.T, dir, name, content string) string {
+	p := filepath.Join(dir, name)
+	if err := os.WriteFile(p, []byte(content), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
 func TestInterpreter(t *testing.T) {
 	dir := t.TempDir()
-	write := func(name, content string) string {
-		p := filepath.Join(dir, name)
-		if err := os.WriteFile(p, []byte(content), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		return p
-	}
 	cases := []struct {
 		name    string
 		content string
@@ -129,7 +131,7 @@ func TestInterpreter(t *testing.T) {
 		{"binary", "\x7fELF\x02\x01\x01\x00binarydata", ""},
 	}
 	for _, c := range cases {
-		if got := interpreter(write(c.name, c.content)); got != c.want {
+		if got := interpreter(writeFixture(t, dir, c.name, c.content)); got != c.want {
 			t.Errorf("interpreter(%s): got %q want %q", c.name, got, c.want)
 		}
 	}
@@ -137,13 +139,6 @@ func TestInterpreter(t *testing.T) {
 
 func TestAbsoluteInterpreter(t *testing.T) {
 	dir := t.TempDir()
-	write := func(name, content string) string {
-		p := filepath.Join(dir, name)
-		if err := os.WriteFile(p, []byte(content), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		return p
-	}
 	cases := []struct {
 		name    string
 		content string
@@ -154,7 +149,7 @@ func TestAbsoluteInterpreter(t *testing.T) {
 		{"binary", "\x7fELF\x02\x01\x01\x00binarydata", ""},
 	}
 	for _, c := range cases {
-		if got := absoluteInterpreter(write(c.name, c.content)); got != c.want {
+		if got := absoluteInterpreter(writeFixture(t, dir, c.name, c.content)); got != c.want {
 			t.Errorf("absoluteInterpreter(%s): got %q want %q", c.name, got, c.want)
 		}
 	}

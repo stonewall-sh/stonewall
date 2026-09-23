@@ -106,7 +106,7 @@ func testRestrictSelfExecChild(t *testing.T) {
 // also needs to be exec-allowed, and nothing was granting that. /bin/sh is dynamically linked on
 // every mainstream Linux distro (including this test's CI runners), so it should report one.
 func TestDynamicLoader(t *testing.T) {
-	if got := dynamicLoader("/bin/sh"); got == "" {
+	if dynamicLoader("/bin/sh") == "" {
 		t.Error("dynamicLoader(/bin/sh) = \"\", want a real ELF interpreter path")
 	}
 	if got := dynamicLoader("/nonexistent-xyz"); got != "" {
