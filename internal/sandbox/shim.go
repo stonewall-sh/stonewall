@@ -20,20 +20,19 @@ const shimSidecarName = ".stonewall-shim.json"
 // a shim invocation can find the sidecar.
 const stonewallShimDirEnv = "STONEWALL_SHIM_DIR"
 
-// shim is one bin.allowed entry's fixed argv prefix: the real binary alone for a plain executable,
-// or the interpreter followed by the script for one that needs it invoked explicitly instead of
-// relying on the kernel's own "#!" substitution, which Landlock blocks even when both the script and
-// its interpreter are individually exec-allowed. The invoker's own trailing args are appended after.
+// stonewallRestrictedEnv marks that this process tree already went through restrictSelfExec, so a
+// nested shim call (one shim invoking another) doesn't redo it: the restriction is already inherited
+// by every descendant, and reapplying it would just stack a redundant extra layer.
+const stonewallRestrictedEnv = "STONEWALL_RESTRICTED"
+
+// shim is one bin.allowed entry's fixed argv prefix; trailing args from the invoker are appended.
 type shim struct {
 	Argv []string `json:"argv"`
 }
 
-// ExecShim is main's very first call, before any CLI setup. Invoked as "stonewall" it returns
-// immediately — the normal CLI runs. Invoked as anything else, it resolves itself via the BinDir
-// sidecar and execs straight into {argv..., args...}, or fails hard; it never falls through into the
-// normal CLI. Gating on the invoked name rather than an env var means stripping STONEWALL_SHIM_DIR
-// from a copy's environment can't be used to reach the real CLI — only naming it "stonewall" does,
-// which is the intended way to run it.
+// ExecShim is main's first call. Invoked as "stonewall", returns immediately. Invoked as anything
+// else, resolves itself via the sidecar and execs into {argv..., args...}, or fails hard — never
+// falls through to the normal CLI.
 func ExecShim() {
 	if filepath.Base(os.Args[0]) == "stonewall" {
 		return
@@ -58,14 +57,35 @@ func ExecShim() {
 		fmt.Fprintf(os.Stderr, "stonewall: %q is not a known shim alias\n", os.Args[0])
 		os.Exit(127)
 	}
+	environ := os.Environ()
+	if os.Getenv(stonewallRestrictedEnv) == "" {
+		if _, warning := restrictSelfExec(execTargets(dir, shims)); warning != "" {
+			fmt.Fprintf(os.Stderr, "stonewall: %s\n", warning)
+		}
+		environ = append(environ, stonewallRestrictedEnv+"=1")
+	}
 	argv := append(append([]string{}, s.Argv...), os.Args[1:]...)
-	err = syscall.Exec(s.Argv[0], argv, os.Environ())
+	err = syscall.Exec(s.Argv[0], argv, environ)
 	fmt.Fprintf(os.Stderr, "stonewall: exec %s failed: %v\n", s.Argv[0], err)
 	os.Exit(1)
 }
 
-// writeSelfShim copies the running binary into dir once and writes the sidecar mapping every shim
-// alias to its argv. Called by MakeBinDir only when shims is non-empty.
+// execTargets returns every path any shim might exec, plus the shim binary itself, deduplicated and
+// sorted for deterministic output.
+func execTargets(dir string, shims map[string]shim) []string {
+	targets := map[string]string{}
+	add := func(p string) { targets[p] = p }
+	add(filepath.Join(dir, shimBinaryName))
+	for _, s := range shims {
+		for _, p := range s.Argv {
+			add(p)
+		}
+	}
+	return sortedValues(targets)
+}
+
+// writeSelfShim copies the running binary into dir once and writes the sidecar. Called by MakeBinDir
+// only when shims is non-empty.
 func writeSelfShim(dir string, shims map[string]shim) error {
 	self, err := os.Executable()
 	if err != nil {

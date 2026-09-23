@@ -59,6 +59,48 @@ func testApplyLandlockChild(t *testing.T) {
 	}
 }
 
+// TestRestrictSelfExec is the same self-check as TestApplyLandlock, but through restrictSelfExec —
+// the actual entry point ExecShim uses — to confirm its LockOSThread handling doesn't break the
+// guarantee: the exec right after must land on the same restricted thread.
+func TestRestrictSelfExec(t *testing.T) {
+	if os.Getenv("STONEWALL_LANDLOCK_TEST_CHILD") == "1" {
+		testRestrictSelfExecChild(t)
+		return
+	}
+
+	self, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(self, "-test.run=^TestRestrictSelfExec$", "-test.v")
+	cmd.Env = append(os.Environ(), "STONEWALL_LANDLOCK_TEST_CHILD=1")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("child failed: %v\n%s", err, out)
+	}
+}
+
+func testRestrictSelfExecChild(t *testing.T) {
+	dir := t.TempDir()
+	denied := writeExecutable(t, dir, "denied")
+
+	trueBin, err := exec.LookPath("true")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	locked, warning := restrictSelfExec([]string{trueBin})
+	if !locked {
+		t.Fatalf("restrictSelfExec reported not applied: %s", warning)
+	}
+	if err := exec.Command(trueBin).Run(); err != nil {
+		t.Errorf("allowed plain ELF denied: %v", err)
+	}
+	if err := exec.Command(denied).Run(); err == nil {
+		t.Error("denied path was allowed to exec")
+	}
+}
+
 // TestDynamicLoader checks the fix for a real CI failure: applyLandlock allowed /usr/bin/true but
 // exec of it still got denied, because a dynamically linked binary's own ELF interpreter (ld.so)
 // also needs to be exec-allowed, and nothing was granting that. /bin/sh is dynamically linked on
@@ -100,23 +142,5 @@ func TestApplyLandlockFallback(t *testing.T) {
 	}
 	if warning == "" {
 		t.Error("applyLandlock returned no warning despite an injected ENOSYS")
-	}
-}
-
-// TestRestrictExecSkipsSetuidBwrap covers the setuid-bwrap exception without touching real Landlock
-// state: restrictExec must return before ever locking the OS thread or calling applyLandlock.
-func TestRestrictExecSkipsSetuidBwrap(t *testing.T) {
-	dir := t.TempDir()
-	fake := writeExecutable(t, dir, "fake-bwrap")
-	if err := os.Chmod(fake, 0o755|os.ModeSetuid); err != nil {
-		t.Fatal(err)
-	}
-
-	locked, warning := restrictExec(map[string]string{"sh": "/bin/sh"}, fake)
-	if locked {
-		t.Error("restrictExec locked the thread for a setuid bwrap")
-	}
-	if warning == "" {
-		t.Error("restrictExec returned no warning for a setuid bwrap")
 	}
 }

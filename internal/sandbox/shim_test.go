@@ -62,8 +62,14 @@ func TestMakeBinDirScriptShim(t *testing.T) {
 	if err := json.Unmarshal(data, &got); err != nil {
 		t.Fatal(err)
 	}
-	if want := (shim{Argv: []string{interp, script}}); got["envscript"].Argv == nil || !slices.Equal(got["envscript"].Argv, want.Argv) {
+	if want := (shim{Argv: []string{interp, script}}); !slices.Equal(got["envscript"].Argv, want.Argv) {
 		t.Fatalf("sidecar = %+v, want %+v", got["envscript"], want)
+	}
+	targets := execTargets(binDir, got)
+	for _, want := range []string{interp, script, filepath.Join(binDir, shimBinaryName)} {
+		if !slices.Contains(targets, want) {
+			t.Errorf("execTargets = %v, missing %q", targets, want)
+		}
 	}
 
 	cmd := exec.Command(alias)
@@ -75,15 +81,16 @@ func TestMakeBinDirScriptShim(t *testing.T) {
 }
 
 // TestMakeBinDirPlainShim confirms a plain binary (no interpreter involved) works the same way: its
-// argv is just itself, and running its alias produces the real binary's own output.
+// argv is just itself, and running its alias forwards trailing args to the real binary. Uses a real
+// ELF (echo), not a shebang script: that's exactly the case restrictSelfExec (real Landlock) refuses
+// to exec directly — a shebang fixture here would pass on this session's non-Landlock test rig but
+// fail for real on Linux CI, so it would prove nothing about the case this test exists to cover.
 func TestMakeBinDirPlainShim(t *testing.T) {
-	dir := t.TempDir()
-	real := filepath.Join(dir, "real-tool")
-	if err := os.WriteFile(real, []byte("#!/bin/sh\necho plain-ok\n"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	real, err := realpath(real)
+	real, err := exec.LookPath("echo")
 	if err != nil {
+		t.Skip("no echo on PATH")
+	}
+	if real, err = realpath(real); err != nil {
 		t.Fatal(err)
 	}
 
@@ -99,11 +106,61 @@ func TestMakeBinDirPlainShim(t *testing.T) {
 		t.Fatalf("tool symlink target = %q, err %v, want the self-shim", target, err)
 	}
 
-	cmd := exec.Command(alias)
+	cmd := exec.Command(alias, "plain-ok")
 	cmd.Env = append(os.Environ(), stonewallShimDirEnv+"="+binDir)
 	out, err := cmd.CombinedOutput()
 	if err != nil || !strings.Contains(string(out), "plain-ok") {
 		t.Fatalf("shim exec: err=%v out=%q", err, out)
+	}
+}
+
+// TestExecShimRestrictsOnce confirms the fix for the layering finding: a nested shim call (one shim
+// invoking another, the STONEWALL_RESTRICTED marker already set) must not attempt restrictSelfExec
+// again — real Landlock stacks a ruleset layer per attempt, capped at 16 by the kernel, so redoing it
+// on every hop of a deep tool chain can silently exhaust that cap. Observed here via the env each
+// exec'd process actually sees, platform-independently (restrictSelfExec itself is a no-op off Linux).
+func TestExecShimRestrictsOnce(t *testing.T) {
+	envBin, err := exec.LookPath("env")
+	if err != nil {
+		t.Skip("no env on PATH")
+	}
+	if envBin, err = realpath(envBin); err != nil {
+		t.Fatal(err)
+	}
+
+	shims := map[string]shim{"tool": {Argv: []string{envBin}}}
+	binDir, err := MakeBinDir(shims)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(binDir)
+	alias := filepath.Join(binDir, "tool")
+
+	for _, tt := range []struct {
+		name       string
+		presetMark string
+	}{
+		{"unset before top-level call", ""},
+		{"already set before nested call", "1"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := exec.Command(alias)
+			cmd.Env = append(os.Environ(), stonewallShimDirEnv+"="+binDir)
+			if tt.presetMark != "" {
+				cmd.Env = append(cmd.Env, stonewallRestrictedEnv+"="+tt.presetMark)
+			}
+			out, err := cmd.CombinedOutput()
+			if err != nil {
+				t.Fatalf("shim exec: %v\n%s", err, out)
+			}
+			marker := stonewallRestrictedEnv + "="
+			if n := strings.Count(string(out), marker); n != 1 {
+				t.Fatalf("%s appears %d times in child env, want exactly 1:\n%s", marker, n, out)
+			}
+			if tt.presetMark != "" && !strings.Contains(string(out), marker+tt.presetMark) {
+				t.Fatalf("preset value %q was not preserved:\n%s", tt.presetMark, out)
+			}
+		})
 	}
 }
 

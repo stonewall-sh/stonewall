@@ -5,8 +5,6 @@ package sandbox
 import (
 	"errors"
 	"os/exec"
-	"path/filepath"
-	"runtime"
 )
 
 // NewSandbox returns the Linux Sandbox.
@@ -24,20 +22,10 @@ func (linuxSandbox) Command(plan *Plan) (*exec.Cmd, string, error) {
 	return exec.Command(bwrapPath, BwrapArgs(plan)...), "bwrap", nil
 }
 
+// Start needs nothing beyond cmd.Start(): Landlock isn't applied here, at bwrap's own fork, but
+// later, inside the sandbox by ExecShim (see shim.go) — bwrap needs to finish its own unprivileged
+// namespace setup first, which breaks if the process forking it already carries the no_new_privs
+// bit Landlock requires.
 func (linuxSandbox) Start(cmd *exec.Cmd, plan *Plan) (warning string, err error) {
-	var extra []string
-	if len(plan.Shims) > 0 { // each shim's interpreter is already in plan.Bins; only the self-copy needs adding
-		extra = append(extra, filepath.Join(plan.BinDir, shimBinaryName))
-	}
-	locked, warning := restrictExec(plan.Bins, cmd.Path, extra...)
-	if err = cmd.Start(); err != nil {
-		if locked {
-			runtime.UnlockOSThread()
-		}
-		return warning, err
-	}
-	if locked {
-		runtime.UnlockOSThread()
-	}
-	return warning, nil
+	return "", cmd.Start()
 }

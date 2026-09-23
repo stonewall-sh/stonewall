@@ -7,7 +7,6 @@ import (
 	"debug/elf"
 	"fmt"
 	"io"
-	"os"
 	"runtime"
 	"unsafe"
 
@@ -26,21 +25,10 @@ var landlockCreateRuleset = func(attr *unix.LandlockRulesetAttr, size, flags uin
 	return int(r1), e
 }
 
-// landlock_restrict_self is per-thread, not per-process, and Go can move a goroutine to a different
-// OS thread at any syscall. So the fork right after this needs to happen on the same locked thread.
-func restrictExec(bins map[string]string, bwrapPath string, extra ...string) (locked bool, warning string) {
-	if fi, err := os.Stat(bwrapPath); err == nil && fi.Mode()&os.ModeSetuid != 0 {
-		// no_new_privs is inherited across exec and would break bwrap's setuid escalation.
-		return false, "bwrap is setuid on this system, skipping Landlock so its privilege escalation still works; exec is only PATH-restricted, not kernel-enforced"
-	}
-
-	paths := make([]string, 0, len(bins)+1+len(extra))
-	for _, p := range bins {
-		paths = append(paths, p)
-	}
-	paths = append(paths, bwrapPath)
-	paths = append(paths, extra...)
-
+// restrictSelfExec applies Landlock to the calling thread and everything it execs from here on.
+// Must run immediately before the exec it's guarding, same OS thread: landlock_restrict_self is
+// per-thread, and Go can move a goroutine to a different one at any other syscall.
+func restrictSelfExec(paths []string) (locked bool, warning string) {
 	runtime.LockOSThread()
 	ok, warn := applyLandlock(paths)
 	if !ok {
