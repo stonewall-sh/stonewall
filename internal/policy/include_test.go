@@ -36,11 +36,13 @@ func (s *policyServer) url() string { return s.URL + "/claude.yml" }
 
 type asker struct {
 	titles []string
+	bodies []string
 	answer bool
 }
 
 func (a *asker) ask(title, body, question string) bool {
 	a.titles = append(a.titles, title)
+	a.bodies = append(a.bodies, body)
 	return a.answer
 }
 
@@ -211,6 +213,28 @@ func TestDownloadRefusesInsecureRedirect(t *testing.T) {
 	}
 }
 
+// Redirects within https are followed, but not forever: httpsOnly replaces the client's own limit.
+func TestDownloadFollowsHTTPSRedirects(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/moved.yml":
+			http.Redirect(w, r, "/p.yml", http.StatusMovedPermanently)
+		case "/loop.yml":
+			http.Redirect(w, r, "/loop.yml", http.StatusFound)
+		default:
+			io.WriteString(w, "bin:\n  allowed: [git]\n")
+		}
+	}))
+	defer srv.Close()
+	l := Loader{Client: srv.Client()}
+	if _, _, err := l.download(srv.URL + "/moved.yml"); err != nil {
+		t.Errorf("https redirect: %v", err)
+	}
+	if _, _, err := l.download(srv.URL + "/loop.yml"); err == nil || !strings.Contains(err.Error(), "10 redirects") {
+		t.Errorf("redirect loop: %v", err)
+	}
+}
+
 func TestRemoteIncludeStale(t *testing.T) {
 	body := "bin:\n  allowed: [git]\n"
 	srv := newPolicyServer(t, body)
@@ -293,29 +317,20 @@ func TestUpdate(t *testing.T) {
 	// 7a. A refused change keeps the reviewed version.
 	a.answer = false
 	a.titles = nil
-	res, err := l.Update(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res) != 1 || res[0].Status != Kept {
-		t.Fatalf("refused update: %+v", res)
-	}
+	updateOnce(t, l, path, Kept)
 	if readFile(t, cacheOf(body)) != body {
 		t.Error("refused update touched the cache")
 	}
 
 	// 7b. An accepted change replaces the cache file and the lock entry.
 	a.answer = true
-	a.titles = nil
-	res, err = l.Update(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res) != 1 || res[0].Status != Updated {
-		t.Fatalf("accepted update: %+v", res)
-	}
+	a.titles, a.bodies = nil, nil
+	updateOnce(t, l, path, Updated)
 	if len(a.titles) != 1 || !strings.Contains(a.titles[0], "changed") {
 		t.Errorf("change prompt: %v", a.titles)
+	}
+	if len(a.bodies) != 1 || !strings.Contains(a.bodies[0], "-  allowed: [git]\n+  allowed: [git, make]\n") {
+		t.Errorf("change prompt does not show the diff:\n%v", a.bodies)
 	}
 	if readFile(t, cacheOf(changed)) != changed {
 		t.Error("new cache file missing")
@@ -333,17 +348,24 @@ func TestUpdate(t *testing.T) {
 
 	// 7c. Unchanged content only refreshes the fetch time.
 	*now = epoch.Add(time.Hour)
-	res, err = l.Update(path)
-	if err != nil || len(res) != 1 || res[0].Status != "up to date" {
-		t.Fatalf("unchanged update: %+v %v", res, err)
-	}
+	updateOnce(t, l, path, UpToDate)
 
 	// 7d. An unreachable policy is a failure, never a silent skip.
 	srv.Close()
-	res, err = l.Update(path)
-	if err == nil || len(res) != 1 || res[0].Status != "failed" || res[0].Err == nil {
-		t.Fatalf("unreachable update: %+v %v", res, err)
+	if updateOnce(t, l, path, Failed).Err == nil {
+		t.Error("failed update without its error")
 	}
+}
+
+// updateOnce runs Update on a policy with one remote include and fails unless that include ends up as want,
+// with an error exactly when want is Failed.
+func updateOnce(t *testing.T, l Loader, path, want string) UpdateResult {
+	t.Helper()
+	res, err := l.Update(path)
+	if len(res) != 1 || res[0].Status != want || (err != nil) != (want == Failed) {
+		t.Fatalf("update: %+v %v, want %s", res, err, want)
+	}
+	return res[0]
 }
 
 func TestLoadLocalInclude(t *testing.T) {
@@ -528,6 +550,21 @@ func TestRemoveInclude(t *testing.T) {
 			t.Errorf("remove %s:\n%q\nwant:\n%q", c.inc, got, c.want)
 		}
 	}
+
+	// The last include takes the key with it: a bare include: is null and fails the schema.
+	path := filepath.Join(t.TempDir(), FileName)
+	if err := os.WriteFile(path, []byte("include:\n  - a.yml\nbin:\n  allowed: [cat]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if removed, err := RemoveInclude(path, "a.yml"); !removed || err != nil {
+		t.Fatalf("remove last: removed=%v err=%v", removed, err)
+	}
+	if got := readFile(t, path); got != "bin:\n  allowed: [cat]\n" {
+		t.Errorf("remove last:\n%q", got)
+	}
+	if _, err := Load(path); err != nil {
+		t.Errorf("policy after removing the last include: %v", err)
+	}
 }
 
 // Include adds the line and runs the update: a refusal leaves the line, the lock and cache stay untouched.
@@ -575,7 +612,7 @@ func TestIncludeAndRemove(t *testing.T) {
 	if !removed || err != nil {
 		t.Fatalf("remove: removed=%v err=%v", removed, err)
 	}
-	if got := readFile(t, path); got != "include:\nbin:\n  allowed: [sh]\n" {
+	if got := readFile(t, path); got != "bin:\n  allowed: [sh]\n" {
 		t.Errorf("file after remove:\n%q", got)
 	}
 	if exists(lockFile) || exists(cache) {

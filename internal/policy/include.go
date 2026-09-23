@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 )
@@ -33,24 +34,8 @@ func (l Loader) Load(path string) (Policy, []string, error) {
 	if err != nil {
 		return Policy{}, nil, err
 	}
-	if urls := remoteURLs(local.Include); len(urls) > 0 {
-		days, stale := r.stale(urls)
-		switch {
-		case r.needsUpdate(urls):
-			if err := l.runUpdate(r, local.Include); err != nil {
-				return Policy{}, nil, err
-			}
-		case stale && !r.snoozed():
-			title := fmt.Sprintf("Cached remote policies are older than %d days and might be outdated.", days)
-			if r.ask(title, r.fetchedList(urls), "Update them now?") {
-				if err := l.runUpdate(r, local.Include); err != nil {
-					return Policy{}, nil, err
-				}
-			} else {
-				r.lock.SnoozedUntil = r.now().Add(24 * time.Hour)
-				r.dirty = true
-			}
-		}
+	if err := l.refresh(r, local.Include); err != nil {
+		return Policy{}, nil, err
 	}
 	sources, err := r.includes(local.Include)
 	if err != nil {
@@ -70,6 +55,28 @@ func (l Loader) Load(path string) (Policy, []string, error) {
 		return Policy{}, nil, err
 	}
 	return eff, absAll(r.files), nil
+}
+
+// refresh runs Update when a remote include has no reviewed copy, and offers it when the cache is stale;
+// a declined offer is snoozed for a day.
+func (l Loader) refresh(r *resolve, includes []string) error {
+	urls := remoteURLs(includes)
+	if len(urls) == 0 {
+		return nil
+	}
+	days, stale := r.stale(urls)
+	switch {
+	case r.needsUpdate(urls):
+		return l.runUpdate(r, includes)
+	case stale && !r.snoozed():
+		title := fmt.Sprintf("Cached remote policies are older than %d days and might be outdated.", days)
+		if r.ask(title, r.fetchedList(urls), "Update them now?") {
+			return l.runUpdate(r, includes)
+		}
+		r.lock.SnoozedUntil = r.now().Add(24 * time.Hour)
+		r.dirty = true
+	}
+	return nil
 }
 
 // runUpdate refreshes the remote includes during a load, reports the results and returns their Problem.
@@ -270,17 +277,19 @@ func RemoveInclude(path, inc string) (bool, error) {
 		return false, err
 	}
 	var kept []string
+	key, items := -1, 0
 	inList, removed := false, false
 	for _, line := range strings.SplitAfter(string(b), "\n") {
 		item := strings.TrimSpace(line)
 		switch {
 		case strings.HasPrefix(item, "include:"):
-			inList = true
+			inList, key = true, len(kept)
 		case inList && strings.HasPrefix(item, "-"):
 			if itemValue(item) == inc {
 				removed = true
 				continue
 			}
+			items++
 		case inList && item != "" && !strings.HasPrefix(item, "#"):
 			inList = false // the next key
 		}
@@ -288,6 +297,9 @@ func RemoveInclude(path, inc string) (bool, error) {
 	}
 	if !removed {
 		return false, nil
+	}
+	if items == 0 { // a bare include: is null, which the schema refuses
+		kept = slices.Delete(kept, key, key+1)
 	}
 	return true, replace(path, []byte(strings.Join(kept, "")))
 }

@@ -2,11 +2,13 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -311,5 +313,109 @@ func TestValidateCommand(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, ".stonewall")); err == nil {
 		t.Error("validate wrote a policy directory")
+	}
+}
+
+// A path given relative to the caller is written relative to the policy file, so include and remove work
+// from any subdirectory.
+func TestIncludeRemoveCommand(t *testing.T) {
+	dir := t.TempDir()
+	policyFile := filepath.Join(dir, ".stonewall.yml")
+	if err := os.WriteFile(policyFile, []byte("include:\n  - policies/base.yml\nbin:\n  allowed: [cat]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "policies"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"base.yml", "extra.yml"} {
+		if err := os.WriteFile(filepath.Join(dir, "policies", name), []byte("bin:\n  allowed: [git]\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Mkdir(filepath.Join(dir, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(filepath.Join(dir, "sub"))
+	run := func(args ...string) error {
+		cmd := newRootCmd()
+		cmd.SetOut(&bytes.Buffer{})
+		cmd.SetErr(&bytes.Buffer{})
+		cmd.SetArgs(append([]string{"--plain", "policy"}, args...))
+		return cmd.Execute()
+	}
+	includes := func() []string {
+		p, err := policy.Load(policyFile)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return p.Include
+	}
+
+	for range 2 { // the second include is a no-op, not an error
+		if err := run("include", "../policies/extra.yml"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if want := []string{"policies/base.yml", "policies/extra.yml"}; !reflect.DeepEqual(includes(), want) {
+		t.Errorf("include list %v, want %v", includes(), want)
+	}
+	if err := run("remove", "../policies/extra.yml"); err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"policies/base.yml"}; !reflect.DeepEqual(includes(), want) {
+		t.Errorf("include list after remove %v, want %v", includes(), want)
+	}
+	if err := run("remove", "../policies/extra.yml"); err == nil || !strings.Contains(err.Error(), "not in the include list") {
+		t.Errorf("removing an unlisted include: %v", err)
+	}
+}
+
+// policy update exits 1 when a remote policy is refused or cannot be fetched, so a script notices.
+func TestUpdateCommand(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "bin:\n  allowed: [cat]\n")
+	}))
+	defer srv.Close()
+	httpClient = srv.Client()
+	defer func() { httpClient = nil }()
+	path := filepath.Join(t.TempDir(), ".stonewall.yml")
+	if err := os.WriteFile(path, []byte("include:\n  - "+srv.URL+"/base.yml\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { stdin = os.Stdin }()
+	run := func(answer string) error {
+		stdin = strings.NewReader(answer)
+		cmd := newRootCmd()
+		cmd.SetOut(&bytes.Buffer{})
+		cmd.SetErr(&bytes.Buffer{})
+		cmd.SetArgs([]string{"--plain", "-p", path, "policy", "update"})
+		return cmd.Execute()
+	}
+	exit1 := func(err error) bool {
+		var ee exitError
+		return errors.As(err, &ee) && ee.code == 1
+	}
+
+	if err := run("n\n"); !exit1(err) {
+		t.Errorf("refused policy: %v", err)
+	}
+	if err := run("y\n"); err != nil {
+		t.Errorf("trusted policy: %v", err)
+	}
+	srv.Close()
+	if err := run(""); !exit1(err) {
+		t.Errorf("unreachable policy: %v", err)
+	}
+}
+
+// The --dry-run command line must survive a round trip through a shell, whatever the arguments hold.
+func TestShellJoin(t *testing.T) {
+	args := []string{"plain", "two words", "it's", "", "$HOME", "*", "`id`", "a\nb", `back\slash`}
+	out, err := exec.Command("sh", "-c", `printf '%s\0' `+shellJoin(args)).Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Split(strings.TrimSuffix(string(out), "\x00"), "\x00"); !reflect.DeepEqual(got, args) {
+		t.Errorf("shell read %q, want %q", got, args)
 	}
 }

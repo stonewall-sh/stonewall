@@ -6,7 +6,7 @@ build:
 	go build -o stonewall .
 
 test:
-	go test ./...
+	go test -coverpkg=./... -coverprofile=coverage.out ./...
 
 policies: build
 	test/policies.sh ./stonewall
