@@ -1,0 +1,114 @@
+//go:build linux
+
+package sandbox
+
+import (
+	"bytes"
+	"debug/elf"
+	"fmt"
+	"io"
+	"runtime"
+	"unsafe"
+
+	"golang.org/x/sys/unix"
+)
+
+// landlockUnavailable is returned whenever Landlock can't be applied, for any reason: old kernel,
+// disabled LSM, or a setup failure. It's always non-fatal — the caller falls back to PATH-only.
+const landlockUnavailable = "Landlock unavailable on this kernel (needs Linux 5.13+); exec is only PATH-restricted, not kernel-enforced"
+
+// landlockCreateRuleset wraps the landlock_create_ruleset(2) syscall. A nil attr with size 0 probes
+// the supported ABI version instead of creating a ruleset. Swappable so a test can inject an
+// unsupported-kernel response without a real old kernel.
+var landlockCreateRuleset = func(attr *unix.LandlockRulesetAttr, size, flags uintptr) (fd int, errno unix.Errno) {
+	r1, _, e := unix.Syscall(unix.SYS_LANDLOCK_CREATE_RULESET, uintptr(unsafe.Pointer(attr)), size, flags)
+	return int(r1), e
+}
+
+// restrictSelfExec applies Landlock to the calling thread and everything it execs from here on.
+// Must run immediately before the exec it's guarding, same OS thread: landlock_restrict_self is
+// per-thread, and Go can move a goroutine to a different one at any other syscall.
+func restrictSelfExec(paths []string) (locked bool, warning string) {
+	runtime.LockOSThread()
+	ok, warn := applyLandlock(paths)
+	if !ok {
+		runtime.UnlockOSThread()
+		return false, warn
+	}
+	return true, ""
+}
+
+// applyLandlock restricts the calling process, and everything it fork+execs from here on for its
+// entire life, to executing only the given paths. The restriction is irreversible and inherited
+// across fork and exec. ok reports whether it was applied; when false the caller should continue
+// PATH-only rather than fail the launch.
+func applyLandlock(paths []string) (ok bool, warning string) {
+	if _, errno := landlockCreateRuleset(nil, 0, unix.LANDLOCK_CREATE_RULESET_VERSION); errno != 0 {
+		return false, landlockUnavailable
+	}
+
+	attr := unix.LandlockRulesetAttr{Access_fs: unix.LANDLOCK_ACCESS_FS_EXECUTE}
+	rulesetFD, errno := landlockCreateRuleset(&attr, unsafe.Sizeof(attr), 0)
+	if errno != 0 {
+		return false, landlockUnavailable
+	}
+	defer unix.Close(rulesetFD)
+
+	// A dynamically linked binary's own exec also needs its ELF interpreter (ld.so) separately
+	// EXECUTE-allowed — the kernel opens and runs that as part of handling the execve, the same LSM
+	// check as the binary itself — so a path that's allowed but not runnable would otherwise still
+	// get denied with no indication why. Shared libraries the loader goes on to mmap need no such
+	// grant: Landlock here only governs EXECUTE, and mmap-for-read isn't gated by it.
+	allowed := make(map[string]bool, len(paths))
+	for _, path := range paths {
+		allowed[path] = true
+		if interp := dynamicLoader(path); interp != "" {
+			allowed[interp] = true
+		}
+	}
+
+	for path := range allowed {
+		fd, err := unix.Open(path, unix.O_PATH|unix.O_CLOEXEC, 0)
+		if err != nil {
+			return false, fmt.Sprintf("Landlock setup failed opening %s (%v); exec is only PATH-restricted, not kernel-enforced", path, err)
+		}
+		beneath := unix.LandlockPathBeneathAttr{Allowed_access: unix.LANDLOCK_ACCESS_FS_EXECUTE, Parent_fd: int32(fd)}
+		_, _, addErrno := unix.Syscall6(unix.SYS_LANDLOCK_ADD_RULE, uintptr(rulesetFD), unix.LANDLOCK_RULE_PATH_BENEATH,
+			uintptr(unsafe.Pointer(&beneath)), 0, 0, 0)
+		unix.Close(fd)
+		if addErrno != 0 {
+			return false, fmt.Sprintf("Landlock setup failed for %s (%v); exec is only PATH-restricted, not kernel-enforced", path, addErrno)
+		}
+	}
+
+	// Required by landlock_restrict_self(2) for an unprivileged caller; set only after every rule
+	// succeeded, so a failed setup above never leaves this (irreversible) bit set for nothing.
+	if err := unix.Prctl(unix.PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0); err != nil {
+		return false, landlockUnavailable
+	}
+	if _, _, restrictErrno := unix.Syscall(unix.SYS_LANDLOCK_RESTRICT_SELF, uintptr(rulesetFD), 0, 0); restrictErrno != 0 {
+		return false, landlockUnavailable
+	}
+	return true, ""
+}
+
+// dynamicLoader returns the ELF interpreter (PT_INTERP) path a dynamically linked binary needs, or
+// "" for a statically linked binary or anything that isn't a readable ELF file.
+func dynamicLoader(path string) string {
+	f, err := elf.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+	for _, prog := range f.Progs {
+		if prog.Type != elf.PT_INTERP {
+			continue
+		}
+		data, err := io.ReadAll(prog.Open())
+		if err != nil {
+			return ""
+		}
+		return string(bytes.TrimRight(data, "\x00"))
+	}
+	return ""
+}

@@ -10,7 +10,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"runtime/debug"
 	"slices"
 	"strings"
@@ -441,6 +440,7 @@ func validatePolicy(ref string) error {
 }
 
 func main() {
+	sandbox.ExecShim()
 	out = newUI(os.Stderr, false)
 	cmd := newRootCmd()
 	if err := cmd.Execute(); err != nil {
@@ -498,21 +498,13 @@ func launch(args []string, policyPath string, dryRun bool) error {
 	}
 	defer os.RemoveAll(plan.BinDir)
 
-	var cmd *exec.Cmd
-	var backend string
-	switch runtime.GOOS {
-	case "linux":
-		bwrap, err := exec.LookPath("bwrap")
-		if err != nil {
-			return fail(errors.New("bubblewrap is required on Linux and was not found on PATH. Install it with your package manager: apt install bubblewrap, dnf install bubblewrap, or pacman -S bubblewrap"))
-		}
-		cmd = exec.Command(bwrap, sandbox.BwrapArgs(plan)...)
-		backend = "bwrap"
-	case "darwin":
-		cmd = exec.Command("/usr/bin/sandbox-exec", sandbox.SeatbeltArgs(plan)...)
-		backend = "sandbox-exec"
-	default:
-		return fail(fmt.Errorf("unsupported OS %s: stonewall runs on Linux and macOS", runtime.GOOS))
+	box, err := sandbox.NewSandbox()
+	if err != nil {
+		return fail(err)
+	}
+	cmd, backend, err := box.Command(plan)
+	if err != nil {
+		return fail(err)
 	}
 
 	policyDisplay := policyPath
@@ -550,7 +542,11 @@ func launch(args []string, policyPath string, dryRun bool) error {
 	// foreground process group); stonewall forwards only termination signals.
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-	if err := cmd.Start(); err != nil {
+	warning, err := box.Start(cmd, plan)
+	if warning != "" {
+		out.warn(warning)
+	}
+	if err != nil {
 		return fail(err)
 	}
 	go func() {

@@ -19,8 +19,14 @@ func testPlan() *Plan {
 		ExposeWrite:   []string{"/home/u/.claude"},
 		ExposeRead:    []string{"/home/u/.gitconfig"},
 		Bins:          map[string]string{"claude": "/home/u/.local/share/claude/claude", "sh": "/usr/bin/sh", "git": "/usr/bin/git", "node": "/home/u/.nvm/node"},
-		BinDir:        "/tmp/stonewall-bin-1",
-		Argv:          []string{"/tmp/stonewall-bin-1/claude", "--resume"},
+		Shims: map[string]shim{
+			"claude": {Argv: []string{"/home/u/.local/share/claude/claude"}},
+			"sh":     {Argv: []string{"/usr/bin/sh"}},
+			"git":    {Argv: []string{"/usr/bin/git"}},
+			"node":   {Argv: []string{"/home/u/.nvm/node"}},
+		},
+		BinDir: "/tmp/stonewall-bin-1",
+		Argv:   []string{"/tmp/stonewall-bin-1/claude", "--resume"},
 	}
 }
 

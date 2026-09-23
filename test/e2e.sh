@@ -33,8 +33,8 @@ printf 'include: [policies/extra.yml, "https://policies.invalid/base.yml"]\nbin:
 
 fail=0
 check() { # check <name> <want exit 0|1> <shell command, run inside the sandbox from $PROJ>
-	if (cd "$PROJ" && "$BIN" sh -c "$3") >/dev/null 2>&1; then got=0; else got=1; fi
-	if [ "$got" = "$2" ]; then echo "ok    $1"; else echo "FAIL  $1 (exit $got, want $2)"; fail=1; fi
+	out=$( (cd "$PROJ" && "$BIN" sh -c "$3") 2>&1 ) && got=0 || got=1
+	if [ "$got" = "$2" ]; then echo "ok    $1"; else echo "FAIL  $1 (exit $got, want $2)"; printf '%s\n' "$out" | sed 's/^/      /'; fail=1; fi
 }
 check "project is writable"          0 'echo hi > src/new && test -f src/new'
 check ".git is readonly"             1 'echo x > .git/x'
@@ -54,6 +54,7 @@ check "read-only exposed path outside HOME is not writable" 1 "echo x >> $TMP/ro
 check "git is on PATH"               0 'command -v git'
 check "cached remote policy is applied" 0 'command -v cat'
 check "curl is not on PATH"          1 'command -v curl'
+check "absolute-path curl bypasses PATH but not the kernel" 1 '/usr/bin/curl --version'
 check "PATH is only the bin dir"     0 'case "$PATH" in */stonewall-bin-*) [ "${PATH#*:}" = "$PATH" ];; *) false;; esac'
 check "stonewall binary is unreadable" 1 "[ -s $BIN ]"
 check "stonewall binary cannot run"    1 "$BIN --help"
