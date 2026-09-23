@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 )
@@ -270,17 +271,19 @@ func RemoveInclude(path, inc string) (bool, error) {
 		return false, err
 	}
 	var kept []string
+	key, items := -1, 0
 	inList, removed := false, false
 	for _, line := range strings.SplitAfter(string(b), "\n") {
 		item := strings.TrimSpace(line)
 		switch {
 		case strings.HasPrefix(item, "include:"):
-			inList = true
+			inList, key = true, len(kept)
 		case inList && strings.HasPrefix(item, "-"):
 			if itemValue(item) == inc {
 				removed = true
 				continue
 			}
+			items++
 		case inList && item != "" && !strings.HasPrefix(item, "#"):
 			inList = false // the next key
 		}
@@ -288,6 +291,9 @@ func RemoveInclude(path, inc string) (bool, error) {
 	}
 	if !removed {
 		return false, nil
+	}
+	if items == 0 { // a bare include: is null, which the schema refuses
+		kept = slices.Delete(kept, key, key+1)
 	}
 	return true, replace(path, []byte(strings.Join(kept, "")))
 }

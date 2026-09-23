@@ -93,7 +93,7 @@ jobs:
             -Dsonar.projectKey=stonewall-sh_stonewall
             -Dsonar.organization=stonewall-sh
             -Dsonar.sources=.
-            -Dsonar.exclusions=**/*_test.go
+            -Dsonar.exclusions=**/*_test.go,**/*.png
             -Dsonar.tests=.
             -Dsonar.test.inclusions=**/*_test.go
             -Dsonar.go.coverage.reportPaths=coverage.out
